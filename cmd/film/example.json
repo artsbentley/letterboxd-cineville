@@ -1,0 +1,34 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Event",
+  "name": "200% Wolf",
+  "url": "https://www.filmvandaag.nl/film/133263-200-wolf",
+  "description": "Freddy Lupin wil dolgraag de leider worden van zijn groep weerwolven. Maar niemand neemt hem serieus vanwege zijn roze haar en poedelachtige…",
+  "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+  "eventStatus": "https://schema.org/EventScheduled",
+  "startDate": "2024-10-20T16:50:00+02:00",
+  "endDate": "2024-10-20T18:43:00+02:00",
+  "image": "https://static.filmvandaag.nl/covers/133000/133263.jpg?v=1&width=1200&aspect_ratio=1%3A0.525",
+  "location": {
+    "@type": "Place",
+    "name": "Pathé Amsterdam Noord",
+    "address": "Buikslotermeerplein 2003, 1025 XL, Amsterdam"
+  },
+  "organizer": {
+    "@type": "Organization",
+    "name": "Pathé Amsterdam Noord",
+    "url": "https://www.pathe.nl/bioscoop/amsterdamnoord"
+  },
+  "performer": {
+    "@type": "Person",
+    "name": "Alexs Stadermann"
+  },
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR",
+    "url": "https://www.pathe.nl/bioscoop/amsterdamnoord",
+    "availability": "https://schema.org/InStock",
+    "validFrom": "2024-10-20T00:00:00+02:00"
+  }
+}
