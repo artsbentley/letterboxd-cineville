@@ -21,7 +21,7 @@ func main() {
 	event := model.FilmEvent{
 		StartDate:       parsedTime,
 		EndDate:         parsedTime,
-		Name:            "The Substance",
+		Name:            "testfilm",
 		URL:             "https://themovies.nl",
 		LocationName:    "The Movies",
 		LocationAddress: "Haarlemmerstraat",
@@ -38,7 +38,7 @@ func main() {
 	lbox := model.Letterboxd{
 		Email:     "arnoarts@hotmail.com",
 		Username:  "Deltore",
-		Watchlist: []string{"The Substance"},
+		Watchlist: []string{"The Substance", "testfilm"},
 	}
 
 	err = Sqlite.InsertWatchlist(lbox)
