@@ -1,4 +1,4 @@
-package FilmMatcher
+package matcher
 
 import (
 	"letterboxd-cineville/db"
