@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 )
 
 var Sql Sqlite
@@ -51,9 +51,16 @@ func (s *Sqlite) InsertFilmEvent(event model.FilmEvent) error {
 			:performer_name
 		)`, event)
 	if err != nil {
-		s.Logger.Error("error inserting film event: ", "error: ", err)
-		return err
+		if sqliteErr, ok := err.(sqlite3.Error); ok {
+			if sqliteErr.Code == sqlite3.ErrConstraint {
+				s.Logger.Warn("film event already exists", "name: ", event.Name)
+				// NOTE: better to return error?
+				return nil
+			}
+		}
+		return err // Return other errors
 	}
+
 	s.Logger.Info("film event inserted successfully", "name: ", event.Name)
 	return nil
 }
@@ -130,6 +137,30 @@ func (s *Sqlite) InsertWatchlist(letterboxd model.Letterboxd) error {
 	return nil
 }
 
+func (s *Sqlite) GetMatchingFilmEventsByEmail(email string) ([]model.FilmEvent, error) {
+	var filmEvents []model.FilmEvent
+
+	query := `
+		SELECT fe.name, fe.url, fe.start_date, fe.end_date, 
+		       fe.location_name, fe.location_address, 
+		       fe.organizer_name, fe.organizer_url, 
+		       fe.performer_name
+		FROM film_event AS fe
+		INNER JOIN watchlist AS wl ON fe.name = wl.film_title
+		INNER JOIN letterboxd AS lb ON lb.id = wl.letterboxd_id
+		WHERE lb.email = ?
+	`
+
+	err := s.DB.Select(&filmEvents, query, email)
+	if err != nil {
+		s.Logger.Error("error retrieving matching film events", "error", err)
+		return nil, err
+	}
+
+	s.Logger.Info("Matching film events retrieved successfully", "email", email)
+	return filmEvents, nil
+}
+
 // init is automatically called when the package is imported
 func init() {
 	var err error
@@ -149,6 +180,4 @@ func init() {
 		DB,
 		slog.Default(),
 	}
-
-	fmt.Println("Database connection initialized.")
 }

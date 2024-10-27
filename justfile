@@ -15,14 +15,18 @@ film:
 	go run ./cmd/film/main.go
 
 
-# Build the binary
 build:
     mkdir -p {{BUILD_DIR}}
     go build -o {{BUILD_DIR}}/{{BINARY}} {{SRC}}
 
-# Clean the build directory
 clean:
     rm -rf {{BUILD_DIR}}
+
+reset:
+	-rm {{DB_DIR}}
+	just db-create
+	just migrate-up
+
 
 # Create Database
 [group('db')]

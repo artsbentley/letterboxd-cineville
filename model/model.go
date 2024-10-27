@@ -15,3 +15,14 @@ type FilmEvent struct {
 	OrganizerURL    string    `db:"organizer_url"`
 	PerformerName   string    `db:"performer_name"`
 }
+
+type Letterboxd struct {
+	Email     string   `db:"email"`
+	Username  string   `db:"username"`
+	Watchlist []string `db:"watchlist"`
+}
+
+// type User struct {
+// 	Username     string
+// 	CityInterest []string
+// }

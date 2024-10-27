@@ -13,18 +13,21 @@ import (
 func main() {
 	// db := database.DB
 	Sqlite := database.Sql
-	var tables []string
+	dateStr := "2024-10-27 15:30:00"
+	layout := "2006-01-02 15:04:05" // Go uses this specific reference layout
 
+	// Parse the string to time.Time
+	parsedTime, _ := time.Parse(layout, dateStr)
 	event := model.FilmEvent{
-		StartDate:       time.Now(),
-		EndDate:         time.Now().Add(time.Hour * 2),
-		Name:            "My Event",
-		URL:             "https://example.com",
-		LocationName:    "test",
-		LocationAddress: "test",
-		OrganizerName:   "hi there",
-		OrganizerURL:    "fhuehf",
-		PerformerName:   "hi",
+		StartDate:       parsedTime,
+		EndDate:         parsedTime,
+		Name:            "The Substance",
+		URL:             "https://themovies.nl",
+		LocationName:    "The Movies",
+		LocationAddress: "Haarlemmerstraat",
+		OrganizerName:   "The Movies",
+		OrganizerURL:    "www.themovies.nl",
+		PerformerName:   "Performer",
 	}
 
 	err := Sqlite.InsertFilmEvent(event)
@@ -35,7 +38,7 @@ func main() {
 	lbox := model.Letterboxd{
 		Email:     "arnoarts@hotmail.com",
 		Username:  "Deltore",
-		Watchlist: []string{"Banana", "phone"},
+		Watchlist: []string{"The Substance"},
 	}
 
 	err = Sqlite.InsertWatchlist(lbox)
@@ -43,19 +46,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Query to get all tables from the sqlite_master system table
-	query := `SELECT name 
-				FROM sqlite_master 
-				WHERE type='table' 
-				AND name NOT LIKE 'sqlite_%';`
-	err = Sqlite.DB.Select(&tables, query)
+	match, err := Sqlite.GetMatchingFilmEventsByEmail("arnoarts@hotmail.com")
 	if err != nil {
-		log.Fatalf("Error querying tables: %v", err)
+		log.Fatal(err)
 	}
 
-	// Print all table names
-	fmt.Println("Tables in the database:")
-	for _, table := range tables {
-		fmt.Println(table)
-	}
+	fmt.Println("We've found matches: ", match)
 }
