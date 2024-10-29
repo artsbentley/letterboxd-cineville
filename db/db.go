@@ -3,9 +3,11 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"letterboxd-cineville/model"
 	"log"
 	"log/slog"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/mattn/go-sqlite3"
@@ -62,71 +64,30 @@ func (s *Sqlite) InsertFilmEvent(event model.FilmEvent) error {
 	return nil
 }
 
-// GetOrCreateUserID checks if a user exists by email, and if not, inserts a new user.
-func (s *Sqlite) GetOrCreateUserID(tx *sql.Tx, email, username string) (int, error) {
-	var userID int
-	err := tx.QueryRowContext(context.Background(), `SELECT id FROM letterboxd WHERE email = ?`, email).Scan(&userID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			// If the user does not exist, insert a new record
-			result, err := tx.ExecContext(context.Background(), `INSERT INTO letterboxd (email, username) VALUES (?, ?)`, email, username)
-			if err != nil {
-				return 0, err
-			}
-			lastID, err := result.LastInsertId()
-			if err != nil {
-				return 0, err
-			}
-			userID = int(lastID)
-		} else {
-			return 0, err
-		}
-	}
-	return userID, nil
-}
-
-// InsertWatchlist drops the current watchlist and inserts a new one for the specified user.
-func (s *Sqlite) InsertWatchlist(letterboxd model.Letterboxd) error {
-	ctx := context.Background()
-
-	// Begin a transaction
-	tx, err := s.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	// Get or create the user ID
-	userID, err := s.GetOrCreateUserID(tx, letterboxd.Email, letterboxd.Username)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Delete all existing watchlist items for the user
-	_, err = tx.ExecContext(ctx, `DELETE FROM watchlist WHERE letterboxd_id = ?`, userID)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Insert new watchlist items
-	for _, film := range letterboxd.Watchlist {
-		_, err := tx.ExecContext(ctx, `INSERT INTO watchlist (letterboxd_id, film_title) VALUES (?, ?)`, userID, film)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	// Commit the transaction
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	s.Logger.Info("Watchlist updated successfully", "email", letterboxd.Email)
-	return nil
-}
-
+// // GetOrCreateUserID checks if a user exists by email, and if not, inserts a new user.
+// func (s *Sqlite) GetOrCreateUserID(tx *sql.Tx, email, username string) (int, error) {
+// 	var userID int
+// 	err := tx.QueryRowContext(context.Background(), `SELECT id FROM letterboxd WHERE email = ?`, email).Scan(&userID)
+// 	if err != nil {
+// 		if err == sql.ErrNoRows {
+// 			// If the user does not exist, insert a new record
+// 			result, err := tx.ExecContext(context.Background(), `INSERT INTO letterboxd (email, username) VALUES (?, ?)`, email, username)
+// 			if err != nil {
+// 				return 0, err
+// 			}
+// 			lastID, err := result.LastInsertId()
+// 			if err != nil {
+// 				return 0, err
+// 			}
+// 			userID = int(lastID)
+// 		} else {
+// 			return 0, err
+// 		}
+// 	}
+// 	return userID, nil
+// }
+//
+// // InsertWatchlist drops the current watchlist and inserts a new one for the specified user.
 // func (s *Sqlite) InsertWatchlist(letterboxd model.Letterboxd) error {
 // 	ctx := context.Background()
 //
@@ -136,54 +97,22 @@ func (s *Sqlite) InsertWatchlist(letterboxd model.Letterboxd) error {
 // 		return err
 // 	}
 //
-// 	// Check if the user exists by email
-// 	var userID int
-// 	err = tx.QueryRowContext(ctx, `SELECT id FROM letterboxd WHERE email = ?`, letterboxd.Email).Scan(&userID)
-// 	if err != nil {
-// 		if err == sql.ErrNoRows {
-// 			// If user does not exist, insert a new record
-// 			result, err := tx.ExecContext(ctx, `INSERT INTO letterboxd (email, username) VALUES (?, ?)`, letterboxd.Email, letterboxd.Username)
-// 			if err != nil {
-// 				tx.Rollback()
-// 				return err
-// 			}
-// 			lastID, err := result.LastInsertId()
-// 			if err != nil {
-// 				tx.Rollback()
-// 				return err
-// 			}
-// 			userID = int(lastID)
-// 		} else {
-// 			tx.Rollback()
-// 			return err
-// 		}
-// 	}
-//
-// 	// Remove existing watchlist items not in the new list
-// 	placeholders := strings.Repeat("?,", len(letterboxd.Watchlist))
-// 	placeholders = placeholders[:len(placeholders)-1] // Remove trailing comma
-//
-// 	// Delete old watchlist items not in the new list
-// 	deleteQuery := fmt.Sprintf(`
-// 		DELETE FROM watchlist
-// 		WHERE letterboxd_id = ? AND film_title NOT IN (%s)
-// 	`, placeholders)
-//
-// 	args := make([]interface{}, len(letterboxd.Watchlist)+1)
-// 	args[0] = userID
-// 	for i, film := range letterboxd.Watchlist {
-// 		args[i+1] = film
-// 	}
-//
-// 	_, err = tx.ExecContext(ctx, deleteQuery, args...)
+// 	// Get or create the user ID
+// 	userID, err := s.GetOrCreateUserID(tx, letterboxd.Email, letterboxd.Username)
 // 	if err != nil {
 // 		tx.Rollback()
 // 		return err
 // 	}
 //
-// 	// Insert new watchlist items, ignoring duplicates
+// 	_, err = tx.ExecContext(ctx, `DELETE FROM watchlist WHERE letterboxd_id = ?`, userID)
+// 	if err != nil {
+// 		tx.Rollback()
+// 		return err
+// 	}
+//
+// 	// Insert new watchlist items
 // 	for _, film := range letterboxd.Watchlist {
-// 		_, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO watchlist (letterboxd_id, film_title) VALUES (?, ?)`, userID, film)
+// 		_, err := tx.ExecContext(ctx, `INSERT INTO watchlist (letterboxd_id, film_title) VALUES (?, ?)`, userID, film)
 // 		if err != nil {
 // 			tx.Rollback()
 // 			return err
@@ -198,6 +127,78 @@ func (s *Sqlite) InsertWatchlist(letterboxd model.Letterboxd) error {
 // 	s.Logger.Info("Watchlist updated successfully", "email", letterboxd.Email)
 // 	return nil
 // }
+
+func (s *Sqlite) InsertWatchlist(letterboxd model.Letterboxd) error {
+	ctx := context.Background()
+
+	// Begin a transaction
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	// Check if the user exists by email
+	var userID int
+	err = tx.QueryRowContext(ctx, `SELECT id FROM letterboxd WHERE email = ?`, letterboxd.Email).Scan(&userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// If user does not exist, insert a new record
+			result, err := tx.ExecContext(ctx, `INSERT INTO letterboxd (email, username) VALUES (?, ?)`, letterboxd.Email, letterboxd.Username)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			lastID, err := result.LastInsertId()
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+			userID = int(lastID)
+		} else {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Remove existing watchlist items not in the new list
+	placeholders := strings.Repeat("?,", len(letterboxd.Watchlist))
+	placeholders = placeholders[:len(placeholders)-1] // Remove trailing comma
+
+	// Delete old watchlist items not in the new list
+	deleteQuery := fmt.Sprintf(`
+		DELETE FROM watchlist
+		WHERE letterboxd_id = ? AND film_title NOT IN (%s)
+	`, placeholders)
+
+	args := make([]interface{}, len(letterboxd.Watchlist)+1)
+	args[0] = userID
+	for i, film := range letterboxd.Watchlist {
+		args[i+1] = film
+	}
+
+	_, err = tx.ExecContext(ctx, deleteQuery, args...)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Insert new watchlist items, ignoring duplicates
+	for _, film := range letterboxd.Watchlist {
+		_, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO watchlist (letterboxd_id, film_title) VALUES (?, ?)`, userID, film)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	s.Logger.Info("Watchlist updated successfully", "email", letterboxd.Email)
+	return nil
+}
 
 func (s *Sqlite) GetMatchingFilmEventsByEmail(email string) ([]model.FilmEvent, error) {
 	var filmEvents []model.FilmEvent
