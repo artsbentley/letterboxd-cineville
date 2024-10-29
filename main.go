@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	database "letterboxd-cineville/db"
+	"letterboxd-cineville/handle"
 	"letterboxd-cineville/model"
-	"log"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -33,9 +33,7 @@ func main() {
 	}
 
 	err := Sqlite.InsertFilmEvent(event)
-	if err != nil {
-		log.Fatal(err)
-	}
+	handle.ErrFatal(err)
 
 	lbox := model.Letterboxd{
 		Email:     "arnoarts@hotmail.com",
@@ -44,14 +42,10 @@ func main() {
 	}
 
 	err = Sqlite.InsertWatchlist(lbox)
-	if err != nil {
-		log.Fatal(err)
-	}
+	handle.ErrFatal(err)
 
 	match, err := Sqlite.GetMatchingFilmEventsByEmail("arnoarts@hotmail.com")
-	if err != nil {
-		log.Fatal(err)
-	}
+	handle.ErrFatal(err)
 
 	fmt.Println("We've found matches: ", match)
 }
