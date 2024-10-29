@@ -10,9 +10,12 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// TODO:
+// NOTE: nice to have:
 // - scrape and persist movie posters per movie title
 
+// TODO:
+//   - setup scraping of filmevents into main file, first every time program is
+//     run, later as concurrent cron
 func main() {
 	Sqlite := database.Sql
 	dateStr := "2024-10-27 15:30:00"
