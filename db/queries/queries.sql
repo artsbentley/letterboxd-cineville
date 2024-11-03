@@ -1,4 +1,4 @@
--- name: GetOrCreateUserID :one
+-- name: GetUserIDByEmail :one
 SELECT id FROM user WHERE email = ?;
 
 -- name: InsertUser :exec
@@ -9,6 +9,11 @@ DELETE FROM watchlist WHERE user_id = ?;
 
 -- name: InsertWatchlistItem :exec
 INSERT INTO watchlist (user_id, film_title) VALUES (?, ?);
+
+-- name: UpdateUserEmailConfirmation :exec
+UPDATE user
+SET email_confirmation = ?
+WHERE email = ?;
 
 -- name: GetAllUsers :many
 SELECT email, letterboxd_username FROM user;

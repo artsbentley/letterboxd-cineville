@@ -25,6 +25,22 @@ func NewSqlite(db *sql.DB, logger *slog.Logger) *Sqlite {
 	}
 }
 
+func (s *Sqlite) CreateNewUser(user model.User) error {
+	err := s.queries.InsertUser(context.Background(), sqlc.InsertUserParams{
+		Email:              user.Email,
+		LetterboxdUsername: user.LetterboxdUsername,
+	})
+	return err
+}
+
+func (s *Sqlite) ConfirmUserEmail(email string) error {
+	err := s.queries.UpdateUserEmailConfirmation(context.Background(), sqlc.UpdateUserEmailConfirmationParams{
+		Email:             email,
+		EmailConfirmation: 1,
+	})
+	return err
+}
+
 func (s *Sqlite) InsertFilmEvent(event model.FilmEvent) error {
 	err := s.queries.InsertFilmEvent(context.Background(), sqlc.InsertFilmEventParams{
 		Name:            event.Name,
@@ -73,7 +89,7 @@ func (s *Sqlite) GetOrCreateUserID(email, username string) (int64, error) {
 	ctx := context.Background()
 
 	// Attempt to retrieve the user ID by email
-	userID, err := s.queries.GetOrCreateUserID(ctx, email)
+	userID, err := s.queries.GetUserIDByEmail(ctx, email)
 	if err == sql.ErrNoRows {
 		// User does not exist; insert a new user
 		if err := s.queries.InsertUser(ctx, sqlc.InsertUserParams{
@@ -84,7 +100,7 @@ func (s *Sqlite) GetOrCreateUserID(email, username string) (int64, error) {
 		}
 
 		// Attempt to retrieve the user ID again after insertion
-		userID, err = s.queries.GetOrCreateUserID(ctx, email)
+		userID, err = s.queries.GetUserIDByEmail(ctx, email)
 		if err != nil {
 			return 0, err
 		}

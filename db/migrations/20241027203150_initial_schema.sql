@@ -17,7 +17,8 @@ CREATE TABLE film_event (
 CREATE TABLE user (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL UNIQUE,
-    letterboxd_username TEXT NOT NULL
+    letterboxd_username TEXT NOT NULL,
+	email_confirmation INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE watchlist (

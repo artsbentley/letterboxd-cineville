@@ -106,12 +106,12 @@ func (q *Queries) GetMatchingFilmEventsByEmail(ctx context.Context, email string
 	return items, nil
 }
 
-const getOrCreateUserID = `-- name: GetOrCreateUserID :one
+const getUserIDByEmail = `-- name: GetUserIDByEmail :one
 SELECT id FROM user WHERE email = ?
 `
 
-func (q *Queries) GetOrCreateUserID(ctx context.Context, email string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getOrCreateUserID, email)
+func (q *Queries) GetUserIDByEmail(ctx context.Context, email string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getUserIDByEmail, email)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
@@ -180,5 +180,21 @@ type InsertWatchlistItemParams struct {
 
 func (q *Queries) InsertWatchlistItem(ctx context.Context, arg InsertWatchlistItemParams) error {
 	_, err := q.db.ExecContext(ctx, insertWatchlistItem, arg.UserID, arg.FilmTitle)
+	return err
+}
+
+const updateUserEmailConfirmation = `-- name: UpdateUserEmailConfirmation :exec
+UPDATE user
+SET email_confirmation = ?
+WHERE email = ?
+`
+
+type UpdateUserEmailConfirmationParams struct {
+	EmailConfirmation int64  `json:"email_confirmation"`
+	Email             string `json:"email"`
+}
+
+func (q *Queries) UpdateUserEmailConfirmation(ctx context.Context, arg UpdateUserEmailConfirmationParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserEmailConfirmation, arg.EmailConfirmation, arg.Email)
 	return err
 }
