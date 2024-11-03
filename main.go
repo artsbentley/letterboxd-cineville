@@ -16,6 +16,8 @@ import (
 
 // NOTE: considerations:
 // - lower case before insert of values or right before matching?
+// - image storage
+// - smtp server
 
 // TODO:
 //   - setup scraping of filmevents into main file, first every time program is
@@ -23,7 +25,10 @@ import (
 func main() {
 	Sqlite := database.Sql
 	FilmEventScraper := scrape.NewFilmEventScraper(Sqlite)
-	go FilmEventScraper.Scrape() // Start the cron jobs
+	WatchlistScraper := scrape.NewWatchlistScraper(Sqlite)
+
+	go FilmEventScraper.Scrape()
+	go WatchlistScraper.Scrape()
 
 	e := echo.New()
 

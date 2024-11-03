@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	sqlc "letterboxd-cineville/db/sqlc"
 	"letterboxd-cineville/model"
 	"log"
@@ -17,12 +18,27 @@ type Sqlite struct {
 	DB      *sql.DB
 }
 
-func NewSqlite(db *sql.DB, logger *slog.Logger) *Sqlite {
+func NewSqlite(db *sql.DB) (*Sqlite, error) {
+	// Configure connection pool
+	// db.SetMaxOpenConns(1) // SQLite only supports one writer at a time
+	// db.SetMaxIdleConns(1)
+	// db.SetConnMaxLifetime(time.Hour)
+
+	// Enable WAL mode for better concurrency
+	if _, err := db.Exec("PRAGMA journal_mode=EXCLUSIVE"); err != nil {
+		return nil, fmt.Errorf("failed to set WAL mode: %w", err)
+	}
+
+	// Enable foreign keys
+	if _, err := db.Exec("PRAGMA foreign_keys=ON"); err != nil {
+		return nil, fmt.Errorf("failed to enable foreign keys: %w", err)
+	}
+
 	return &Sqlite{
 		queries: sqlc.New(db),
 		DB:      db,
-		Logger:  logger,
-	}
+		Logger:  slog.Default(),
+	}, nil
 }
 
 func (s *Sqlite) CreateNewUser(user model.User) error {
@@ -116,41 +132,44 @@ func (s *Sqlite) GetOrCreateUserID(email, username string) (int64, error) {
 func (s *Sqlite) InsertWatchlist(user model.User) error {
 	ctx := context.Background()
 
-	// Begin transaction
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
-	// Use the transaction with Queries
+	// Ensure transaction is rolled back if we return with error
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
 	q := s.queries.WithTx(tx)
 
-	// Get or create user ID
 	userID, err := s.GetOrCreateUserID(user.Email, user.LetterboxdUsername)
 	if err != nil {
-		tx.Rollback()
-		return err
+		return fmt.Errorf("failed to get/create user ID: %w", err)
 	}
 
-	// Clear the current watchlist
 	if err := q.DeleteUserWatchlist(ctx, userID); err != nil {
-		tx.Rollback()
-		return err
+		return fmt.Errorf("failed to delete existing watchlist: %w", err)
 	}
 
-	// Insert new watchlist items
 	for _, film := range user.Watchlist {
-		if err := q.InsertWatchlistItem(ctx, sqlc.InsertWatchlistItemParams{
+		params := sqlc.InsertWatchlistItemParams{
 			UserID:    userID,
 			FilmTitle: film,
-		}); err != nil {
-			tx.Rollback()
-			return err
+		}
+		if err := q.InsertWatchlistItem(ctx, params); err != nil {
+			return fmt.Errorf("failed to insert watchlist item: %w", err)
 		}
 	}
 
-	// Commit the transaction
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
 }
 
 // GetMatchingFilmEventsByEmail retrieves film events based on the user's email.
@@ -194,5 +213,8 @@ func init() {
 		log.Fatalf("Error connecting to the database: %v", err)
 	}
 
-	Sql = NewSqlite(db, slog.Default())
+	Sql, err = NewSqlite(db)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
