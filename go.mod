@@ -10,6 +10,7 @@ require (
 	github.com/gocolly/colly v1.2.0
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/mattn/go-sqlite3 v1.14.24
+	github.com/robfig/cron/v3 v3.0.1
 )
 
 require (
