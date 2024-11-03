@@ -10,6 +10,10 @@ run:
 	templ generate
 	go run {{SRC}}
 
+generate:
+	sqlc generate
+	templ generate
+
 letterboxd:
 	go run ./cmd/letterboxd/main.go
 
