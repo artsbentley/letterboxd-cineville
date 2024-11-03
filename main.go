@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
 	database "letterboxd-cineville/db"
-	"letterboxd-cineville/handle"
-	"letterboxd-cineville/model"
-	"letterboxd-cineville/scrape"
+	"letterboxd-cineville/handlers"
+	"log"
 
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -19,30 +19,68 @@ import (
 func main() {
 	Sqlite := database.Sql
 
-	filmEvents, err := scrape.CollectFilmEvents("https://www.filmvandaag.nl/filmladder/stad/13-amsterdam")
-	handle.ErrFatal(err)
+	e := echo.New()
 
-	for _, event := range filmEvents {
-		err := Sqlite.InsertFilmEvent(event)
-		handle.ErrFatal(err)
+	// Middleware
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	// Initialize handlers
+	userHandler := handlers.NewUserHandler(Sqlite)
+
+	// Routes
+	e.GET("/", userHandler.HandleGetUsers)
+	e.POST("/users", userHandler.HandleCreateUser)
+
+	// Start server
+	if err := e.Start(":8080"); err != nil {
+		log.Fatal(err)
 	}
 
-	watchlist, err := scrape.ScrapeWatchlist("deltore")
-	handle.ErrFatal(err)
-
-	lbox := model.Letterboxd{
-		Email:     "arnoarts@hotmail.com",
-		Username:  "deltore",
-		Watchlist: watchlist,
-	}
-
-	err = Sqlite.InsertWatchlist(lbox)
-	handle.ErrFatal(err)
-
-	matches, err := Sqlite.GetMatchingFilmEventsByEmail("arnoarts@hotmail.com")
-	handle.ErrFatal(err)
-
-	for _, match := range matches {
-		fmt.Println(match.Name)
-	}
+	// users, err := Sqlite.GetAllUsers()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	//
+	// fmt.Println("Users in the database:")
+	// for _, user := range users {
+	// 	fmt.Printf("Email: %s, Username: %s\n", user.Email, user.Username)
+	// }
+	//
+	// filmEvents, err := scrape.CollectFilmEvents("https://www.filmvandaag.nl/filmladder/stad/13-amsterdam")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	//
+	// for _, event := range filmEvents {
+	// 	err := Sqlite.InsertFilmEvent(event)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }
+	//
+	// watchlist, err := scrape.ScrapeWatchlist("deltore")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	//
+	// lbox := model.Letterboxd{
+	// 	Email:     "arnoarts@hotmail.com",
+	// 	Username:  "deltore",
+	// 	Watchlist: watchlist,
+	// }
+	//
+	// err = Sqlite.InsertWatchlist(lbox)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	//
+	// matches, err := Sqlite.GetMatchingFilmEventsByEmail("arnoarts@hotmail.com")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	//
+	// for _, match := range matches {
+	// 	fmt.Println(match.Name, match.LocationName, match.StartDate)
+	// }
 }

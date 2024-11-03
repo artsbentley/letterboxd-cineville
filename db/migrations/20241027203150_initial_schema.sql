@@ -14,18 +14,18 @@ CREATE TABLE film_event (
 	UNIQUE (name, start_date, location_name)
 );
 
-CREATE TABLE letterboxd (
+CREATE TABLE user (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL UNIQUE,
-    username TEXT NOT NULL
+    letterboxd_username TEXT NOT NULL
 );
 
 CREATE TABLE watchlist (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    letterboxd_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
     film_title TEXT NOT NULL,
-    FOREIGN KEY (letterboxd_id) REFERENCES letterboxd(id),
-    UNIQUE (letterboxd_id, film_title)  
+    FOREIGN KEY (user_id) REFERENCES user(id),
+    UNIQUE (user_id, film_title)  
 );
 -- +goose StatementEnd
 
@@ -33,5 +33,5 @@ CREATE TABLE watchlist (
 -- +goose StatementBegin
 DROP TABLE film_event;
 DROP TABLE watchlist;
-DROP TABLE letterboxd;
+DROP TABLE user;
 -- +goose StatementEnd

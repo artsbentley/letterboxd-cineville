@@ -16,10 +16,10 @@ type FilmEvent struct {
 	PerformerName   string    `db:"performer_name"`
 }
 
-type Letterboxd struct {
-	Email     string   `db:"email"`
-	Username  string   `db:"username"`
-	Watchlist []string `db:"watchlist"`
+type User struct {
+	Email              string   `db:"email"`
+	LetterboxdUsername string   `db:"username"`
+	Watchlist          []string `db:"watchlist"`
 }
 
 // type User struct {

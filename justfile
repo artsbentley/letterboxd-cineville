@@ -6,7 +6,9 @@ MIGRATION_DIR := "./db/migrations"
 DB_DIR := "./app.db"
 
 run:
-    go run {{SRC}}
+	sqlc generate
+	templ generate
+	go run {{SRC}}
 
 letterboxd:
 	go run ./cmd/letterboxd/main.go
