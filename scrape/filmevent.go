@@ -3,16 +3,46 @@ package scrape
 import (
 	"encoding/json"
 	"fmt"
+	"letterboxd-cineville/db"
 	"letterboxd-cineville/model"
+	"log"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/gocolly/colly"
+	"github.com/robfig/cron/v3"
 )
 
-// Full struct for the JSON-LD "Event"
+func (s *FilmEventScraper) Scrape() {
+	// _, err := s.cron.AddFunc("0 2 * * 0", func() {
+	_, err := s.cron.AddFunc("* * * * *", func() {
+		s.logger.Info("FilmEventScraper Scheduled task running...")
+		filmEvents, err := CollectFilmEvents("https://www.filmvandaag.nl/filmladder/stad/13-amsterdam")
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, event := range filmEvents {
+			err := s.db.InsertFilmEvent(event)
+			if err != nil {
+				s.logger.Error("Failed to insert FilmEvent: ", "error", err)
+			}
+		}
+	})
+	if err != nil {
+		log.Fatalf("Error scheduling FilmEventScraper task: %v", err)
+	}
+	s.cron.Start() // Start the cron scheduler
+}
 
-// ScrapeFilmEvents extracts FilmEvent details from the JSON-LD script
+func NewFilmEventScraper(db *db.Sqlite) *FilmEventScraper {
+	return &FilmEventScraper{
+		logger: slog.Default(),
+		db:     db,
+		cron:   cron.New(),
+	}
+}
+
 func ScrapeFilmEvents(e *colly.HTMLElement, filmEvents *[]model.FilmEvent) {
 	jsonData := e.Text
 
