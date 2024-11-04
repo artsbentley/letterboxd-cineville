@@ -11,10 +11,10 @@ import (
 )
 
 type UserHandler struct {
-	db *db.Sqlite
+	db *db.Store
 }
 
-func NewUserHandler(db *db.Sqlite) *UserHandler {
+func NewUserHandler(db *db.Store) *UserHandler {
 	return &UserHandler{db: db}
 }
 
