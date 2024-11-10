@@ -4,6 +4,7 @@ import (
 	database "letterboxd-cineville/db"
 	"letterboxd-cineville/handlers"
 	"letterboxd-cineville/scrape"
+	"letterboxd-cineville/service"
 	"log"
 
 	"github.com/labstack/echo/v4"
@@ -24,10 +25,11 @@ import (
 //     run, later as concurrent cron
 func main() {
 	Store := database.Sql
-	FilmEventScraper := scrape.NewFilmEventScraper(Store)
+	Service := service.NewService(Store)
+	// FilmEventScraper := scrape.NewFilmEventScraper(Store)
 	WatchlistScraper := scrape.NewWatchlistScraper(Store)
 
-	go FilmEventScraper.Scrape()
+	// go FilmEventScraper.Scrape()
 	go WatchlistScraper.Scrape()
 
 	e := echo.New()
@@ -37,7 +39,8 @@ func main() {
 	e.Use(middleware.Recover())
 
 	// Initialize handlers
-	userHandler := handlers.NewUserHandler(Store)
+	userHandler := handlers.NewUserHandler(Service)
+	// err := Store Store.DB.
 
 	// Routes
 	e.GET("/", userHandler.HandleGetUsers)
