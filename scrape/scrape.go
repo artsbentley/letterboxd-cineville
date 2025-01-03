@@ -13,12 +13,12 @@ type Scraper interface {
 
 type WatchlistScraper struct {
 	logger *slog.Logger
-	db     *db.Store
+	db     *db.Sqlite
 	cron   *cron.Cron
 }
 
 type FilmEventScraper struct {
 	logger *slog.Logger
-	db     *db.Store
+	db     *db.Sqlite
 	cron   *cron.Cron
 }
