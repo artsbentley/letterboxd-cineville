@@ -1,24 +1,25 @@
 package handlers
 
 import (
-	"fmt"
-	"letterboxd-cineville/service"
+	"letterboxd-cineville/db"
+	"letterboxd-cineville/model"
 	"letterboxd-cineville/views"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 )
 
 type UserHandler struct {
-	service *service.Service
+	db *db.Store
 }
 
-func NewUserHandler(service *service.Service) *UserHandler {
-	return &UserHandler{service: service}
+func NewUserHandler(db *db.Store) *UserHandler {
+	return &UserHandler{db: db}
 }
 
 func (h *UserHandler) HandleGetUsers(c echo.Context) error {
-	users, err := h.service.GetAllUsers()
+	users, err := h.db.GetAllUsers()
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Error fetching users")
 	}
@@ -30,14 +31,24 @@ func (h *UserHandler) HandleCreateUser(c echo.Context) error {
 	email := c.FormValue("email")
 	username := c.FormValue("username")
 
-	err := h.service.CreateNewUser(email, username)
+	user := model.User{
+		Email:              email,
+		LetterboxdUsername: username,
+		Watchlist:          make([]string, 0),
+	}
+
+	// Insert the user into the database
+	err := h.db.InsertWatchlist(user)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		// Handle duplicate error case and return appropriate response
+		if strings.Contains(err.Error(), "already exists") {
+			return c.String(http.StatusConflict, err.Error()) // Return 409 Conflict for duplicates
+		}
+		return c.String(http.StatusInternalServerError, "Error creating user")
 	}
 
 	// Fetch the updated list of users from the database
-	users, err := h.service.GetAllUsers()
+	users, err := h.db.GetAllUsers()
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Error fetching users")
 	}

@@ -18,24 +18,22 @@ CREATE TABLE "user" (
     id BIGSERIAL PRIMARY KEY,
     email TEXT NOT NULL UNIQUE,
     letterboxd_username TEXT NOT NULL,
-	token VARCHAR(32) NOT NULL UNIQUE,
-    email_confirmation BOOLEAN NOT NULL DEFAULT FALSE,
-	watchlist TEXT[]
+    email_confirmation BOOLEAN NOT NULL DEFAULT FALSE
 );
 
--- CREATE TABLE watchlist (
---     id BIGSERIAL PRIMARY KEY,
---     user_id BIGINT NOT NULL,
---     film_title TEXT NOT NULL,
---     FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,
---     UNIQUE (user_id, film_title)  
--- );
+CREATE TABLE watchlist (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    film_title TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,
+    UNIQUE (user_id, film_title)  
+);
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE IF EXISTS film_event;
--- DROP TABLE IF EXISTS watchlist;
+DROP TABLE IF EXISTS watchlist;
 DROP TABLE IF EXISTS "user";
 -- +goose StatementEnd
 
