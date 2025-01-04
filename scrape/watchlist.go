@@ -65,7 +65,7 @@ func (s WatchlistScraper) Scrape() {
 	s.cron.Start()
 }
 
-func NewWatchlistScraper(db *db.Sqlite) *WatchlistScraper {
+func NewWatchlistScraper(db *db.Store) *WatchlistScraper {
 	return &WatchlistScraper{
 		logger: slog.Default(),
 		db:     db,

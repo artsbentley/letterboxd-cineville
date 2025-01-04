@@ -35,7 +35,7 @@ func (s *FilmEventScraper) Scrape() {
 	s.cron.Start() // Start the cron scheduler
 }
 
-func NewFilmEventScraper(db *db.Sqlite) *FilmEventScraper {
+func NewFilmEventScraper(db *db.Store) *FilmEventScraper {
 	return &FilmEventScraper{
 		logger: slog.Default(),
 		db:     db,

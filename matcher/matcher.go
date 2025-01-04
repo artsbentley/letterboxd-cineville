@@ -7,11 +7,11 @@ import (
 
 // NOTE: add username to this struct?
 type FilmMatcher struct {
-	DB     *db.Sqlite
+	DB     *db.Store
 	Logger *slog.Logger
 }
 
-func NewFilmMatcher(DB *db.Sqlite, Logger *slog.Logger) *FilmMatcher {
+func NewFilmMatcher(DB *db.Store, Logger *slog.Logger) *FilmMatcher {
 	return &FilmMatcher{
 		DB:     DB,
 		Logger: Logger,

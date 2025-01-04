@@ -5,21 +5,21 @@ import (
 )
 
 type FilmEvent struct {
-	Name            string    `db:"name"`
-	URL             string    `db:"url"`
-	StartDate       time.Time `db:"start_date"`
-	EndDate         time.Time `db:"end_date"`
-	LocationName    string    `db:"location_name"`
-	LocationAddress string    `db:"location_address"`
-	OrganizerName   string    `db:"organizer_name"`
-	OrganizerURL    string    `db:"organizer_url"`
-	PerformerName   string    `db:"performer_name"`
+	Name            string
+	URL             string
+	StartDate       time.Time
+	EndDate         time.Time
+	LocationName    string
+	LocationAddress string
+	OrganizerName   string
+	OrganizerURL    string
+	PerformerName   string
 }
 
 type User struct {
-	Email              string   `db:"email"`
-	LetterboxdUsername string   `db:"username"`
-	Watchlist          []string `db:"watchlist"`
+	Email              string
+	LetterboxdUsername string
+	Watchlist          []string
 }
 
 // type User struct {
