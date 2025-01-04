@@ -20,6 +20,7 @@ type User struct {
 	Email              string
 	LetterboxdUsername string
 	Watchlist          []string
+	Token              string
 }
 
 // type User struct {
