@@ -12,13 +12,11 @@ import (
 )
 
 const deleteUserWatchlist = `-- name: DeleteUserWatchlist :exec
-UPDATE "user" 
-SET watchlist = NULL
-WHERE email = $1
+DELETE FROM watchlist WHERE user_id = $1
 `
 
-func (q *Queries) DeleteUserWatchlist(ctx context.Context, email string) error {
-	_, err := q.db.Exec(ctx, deleteUserWatchlist, email)
+func (q *Queries) DeleteUserWatchlist(ctx context.Context, userID int64) error {
+	_, err := q.db.Exec(ctx, deleteUserWatchlist, userID)
 	return err
 }
 
@@ -56,8 +54,9 @@ SELECT fe.name, fe.url, fe.start_date, fe.end_date,
        fe.location_name, fe.location_address,
        fe.organizer_name, fe.organizer_url, fe.performer_name
 FROM film_event AS fe
-INNER JOIN "user" AS u ON fe.name = u.film_title
-WHERE u.email = $1
+INNER JOIN watchlist AS wl ON fe.name = wl.film_title
+INNER JOIN "user" ON "user".id = wl.user_id
+WHERE "user".email = $1
 `
 
 type GetMatchingFilmEventsByEmailRow struct {
@@ -113,30 +112,8 @@ func (q *Queries) GetUserIDByEmail(ctx context.Context, email string) (int64, er
 	return id, err
 }
 
-const getUserIDByToken = `-- name: GetUserIDByToken :one
-SELECT id FROM "user" WHERE token = $1
-`
-
-func (q *Queries) GetUserIDByToken(ctx context.Context, token string) (int64, error) {
-	row := q.db.QueryRow(ctx, getUserIDByToken, token)
-	var id int64
-	err := row.Scan(&id)
-	return id, err
-}
-
-const getUserWatchlist = `-- name: GetUserWatchlist :one
-SELECT watchlist FROM "user" WHERE email = $1
-`
-
-func (q *Queries) GetUserWatchlist(ctx context.Context, email string) ([]string, error) {
-	row := q.db.QueryRow(ctx, getUserWatchlist, email)
-	var watchlist []string
-	err := row.Scan(&watchlist)
-	return watchlist, err
-}
-
 const insertFilmEvent = `-- name: InsertFilmEvent :exec
-INSERT INTO "film_event" (
+INSERT INTO film_event (
     name, url, start_date, end_date,
     location_name, location_address,
     organizer_name, organizer_url, performer_name
@@ -174,48 +151,45 @@ func (q *Queries) InsertFilmEvent(ctx context.Context, arg InsertFilmEventParams
 }
 
 const insertUser = `-- name: InsertUser :exec
-INSERT INTO "user" (email, letterboxd_username, token) VALUES ($1, $2, $3)
+INSERT INTO "user" (email, letterboxd_username) VALUES ($1, $2)
 `
 
 type InsertUserParams struct {
 	Email              string `json:"email"`
 	LetterboxdUsername string `json:"letterboxd_username"`
-	Token              string `json:"token"`
 }
 
 func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
-	_, err := q.db.Exec(ctx, insertUser, arg.Email, arg.LetterboxdUsername, arg.Token)
+	_, err := q.db.Exec(ctx, insertUser, arg.Email, arg.LetterboxdUsername)
+	return err
+}
+
+const insertWatchlistItem = `-- name: InsertWatchlistItem :exec
+INSERT INTO watchlist (user_id, film_title) VALUES ($1, $2)
+`
+
+type InsertWatchlistItemParams struct {
+	UserID    int64  `json:"user_id"`
+	FilmTitle string `json:"film_title"`
+}
+
+func (q *Queries) InsertWatchlistItem(ctx context.Context, arg InsertWatchlistItemParams) error {
+	_, err := q.db.Exec(ctx, insertWatchlistItem, arg.UserID, arg.FilmTitle)
 	return err
 }
 
 const updateUserEmailConfirmation = `-- name: UpdateUserEmailConfirmation :exec
 UPDATE "user"
 SET email_confirmation = $1
-WHERE id = $2
+WHERE email = $2
 `
 
 type UpdateUserEmailConfirmationParams struct {
-	EmailConfirmation bool  `json:"email_confirmation"`
-	ID                int64 `json:"id"`
+	EmailConfirmation bool   `json:"email_confirmation"`
+	Email             string `json:"email"`
 }
 
 func (q *Queries) UpdateUserEmailConfirmation(ctx context.Context, arg UpdateUserEmailConfirmationParams) error {
-	_, err := q.db.Exec(ctx, updateUserEmailConfirmation, arg.EmailConfirmation, arg.ID)
-	return err
-}
-
-const updateUserWatchlist = `-- name: UpdateUserWatchlist :exec
-UPDATE "user" 
-SET watchlist = $2 
-WHERE email = $1
-`
-
-type UpdateUserWatchlistParams struct {
-	Email     string   `json:"email"`
-	Watchlist []string `json:"watchlist"`
-}
-
-func (q *Queries) UpdateUserWatchlist(ctx context.Context, arg UpdateUserWatchlistParams) error {
-	_, err := q.db.Exec(ctx, updateUserWatchlist, arg.Email, arg.Watchlist)
+	_, err := q.db.Exec(ctx, updateUserEmailConfirmation, arg.EmailConfirmation, arg.Email)
 	return err
 }
