@@ -2,34 +2,46 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	sqlc "letterboxd-cineville/db/sqlc"
 	"letterboxd-cineville/model"
 	"log"
 	"log/slog"
-	"os"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/mattn/go-sqlite3"
 )
 
-type Store struct {
+type Sqlite struct {
 	queries *sqlc.Queries
 	Logger  *slog.Logger
-	DB      *pgxpool.Pool
+	DB      *sql.DB
 }
 
-func NewStore(db *pgxpool.Pool) (*Store, error) {
-	return &Store{
+func NewSqlite(db *sql.DB) (*Sqlite, error) {
+	// Configure connection pool
+	// db.SetMaxOpenConns(1) // SQLite only supports one writer at a time
+	// db.SetMaxIdleConns(1)
+	// db.SetConnMaxLifetime(time.Hour)
+
+	// Enable WAL mode for better concurrency
+	if _, err := db.Exec("PRAGMA journal_mode=EXCLUSIVE"); err != nil {
+		return nil, fmt.Errorf("failed to set WAL mode: %w", err)
+	}
+
+	// Enable foreign keys
+	if _, err := db.Exec("PRAGMA foreign_keys=ON"); err != nil {
+		return nil, fmt.Errorf("failed to enable foreign keys: %w", err)
+	}
+
+	return &Sqlite{
 		queries: sqlc.New(db),
 		DB:      db,
 		Logger:  slog.Default(),
 	}, nil
 }
 
-func (s *Store) CreateNewUser(user model.User) error {
+func (s *Sqlite) CreateNewUser(user model.User) error {
 	err := s.queries.InsertUser(context.Background(), sqlc.InsertUserParams{
 		Email:              user.Email,
 		LetterboxdUsername: user.LetterboxdUsername,
@@ -37,30 +49,20 @@ func (s *Store) CreateNewUser(user model.User) error {
 	return err
 }
 
-func (s *Store) ConfirmUserEmail(email string) error {
+func (s *Sqlite) ConfirmUserEmail(email string) error {
 	err := s.queries.UpdateUserEmailConfirmation(context.Background(), sqlc.UpdateUserEmailConfirmationParams{
 		Email:             email,
-		EmailConfirmation: true,
+		EmailConfirmation: 1,
 	})
 	return err
 }
 
-func (s *Store) InsertFilmEvent(event model.FilmEvent) error {
-	// Convert time.Time to pgtype.Timestamptz
-	startDate := pgtype.Timestamptz{
-		Time:  event.StartDate,
-		Valid: true,
-	}
-	endDate := pgtype.Timestamptz{
-		Time:  event.EndDate,
-		Valid: true,
-	}
-
+func (s *Sqlite) InsertFilmEvent(event model.FilmEvent) error {
 	err := s.queries.InsertFilmEvent(context.Background(), sqlc.InsertFilmEventParams{
 		Name:            event.Name,
 		Url:             event.URL,
-		StartDate:       startDate,
-		EndDate:         endDate,
+		StartDate:       event.StartDate,
+		EndDate:         event.EndDate,
 		LocationName:    event.LocationName,
 		LocationAddress: event.LocationAddress,
 		OrganizerName:   event.OrganizerName,
@@ -68,22 +70,18 @@ func (s *Store) InsertFilmEvent(event model.FilmEvent) error {
 		PerformerName:   event.PerformerName,
 	})
 	if err != nil {
-		// Check for unique constraint violation
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			// 23505 is the PostgreSQL error code for unique_violation
-			if pgErr.Code == "23505" {
-				s.Logger.Warn("film event already exists", "name", event.Name)
-				return nil
-			}
+		if sqliteErr, ok := err.(sqlite3.Error); ok && sqliteErr.Code == sqlite3.ErrConstraint {
+			s.Logger.Warn("film event already exists", "name", event.Name)
+			return nil
 		}
-		return fmt.Errorf("failed to insert film event: %w", err)
+		return err
 	}
 
 	s.Logger.Info("film event inserted successfully", "name", event.Name)
 	return nil
 }
 
-func (s *Store) GetAllUsers() ([]model.User, error) {
+func (s *Sqlite) GetAllUsers() ([]model.User, error) {
 	ctx := context.Background()
 	rows, err := s.queries.GetAllUsers(ctx)
 	if err != nil {
@@ -95,7 +93,7 @@ func (s *Store) GetAllUsers() ([]model.User, error) {
 		users = append(users, model.User{
 			Email:              row.Email,
 			LetterboxdUsername: row.LetterboxdUsername,
-			Watchlist:          []string{},
+			Watchlist:          []string{}, // Initialize as empty or populate if needed
 		})
 	}
 
@@ -103,32 +101,52 @@ func (s *Store) GetAllUsers() ([]model.User, error) {
 	return users, nil
 }
 
-func (s *Store) GetUserID(email, username string) (int64, error) {
+func (s *Sqlite) GetOrCreateUserID(email, username string) (int64, error) {
 	ctx := context.Background()
+
+	// Attempt to retrieve the user ID by email
 	userID, err := s.queries.GetUserIDByEmail(ctx, email)
-	if err != nil {
+	if err == sql.ErrNoRows {
+		// User does not exist; insert a new user
+		if err := s.queries.InsertUser(ctx, sqlc.InsertUserParams{
+			Email:              email,
+			LetterboxdUsername: username,
+		}); err != nil {
+			return 0, err
+		}
+
+		// Attempt to retrieve the user ID again after insertion
+		userID, err = s.queries.GetUserIDByEmail(ctx, email)
+		if err != nil {
+			return 0, err
+		}
+		return userID, nil
+	} else if err != nil {
 		return 0, err
 	}
+
 	return userID, nil
 }
 
-func (s *Store) InsertWatchlist(user model.User) error {
+// InsertWatchlist inserts a watchlist for the user.
+func (s *Sqlite) InsertWatchlist(user model.User) error {
 	ctx := context.Background()
 
-	// Use pgx/v5 TxOptions instead of v4
-	tx, err := s.DB.BeginTx(ctx, pgx.TxOptions{})
+	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
+
+	// Ensure transaction is rolled back if we return with error
 	defer func() {
 		if err != nil {
-			_ = tx.Rollback(ctx)
+			tx.Rollback()
 		}
 	}()
 
 	q := s.queries.WithTx(tx)
 
-	userID, err := s.GetUserID(user.Email, user.LetterboxdUsername)
+	userID, err := s.GetOrCreateUserID(user.Email, user.LetterboxdUsername)
 	if err != nil {
 		return fmt.Errorf("failed to get/create user ID: %w", err)
 	}
@@ -138,22 +156,24 @@ func (s *Store) InsertWatchlist(user model.User) error {
 	}
 
 	for _, film := range user.Watchlist {
-		if err := q.InsertWatchlistItem(ctx, sqlc.InsertWatchlistItemParams{
+		params := sqlc.InsertWatchlistItemParams{
 			UserID:    userID,
 			FilmTitle: film,
-		}); err != nil {
+		}
+		if err := q.InsertWatchlistItem(ctx, params); err != nil {
 			return fmt.Errorf("failed to insert watchlist item: %w", err)
 		}
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Store) GetMatchingFilmEventsByEmail(email string) ([]model.FilmEvent, error) {
+// GetMatchingFilmEventsByEmail retrieves film events based on the user's email.
+func (s *Sqlite) GetMatchingFilmEventsByEmail(email string) ([]model.FilmEvent, error) {
 	rows, err := s.queries.GetMatchingFilmEventsByEmail(context.Background(), email)
 	if err != nil {
 		s.Logger.Error("error retrieving matching film events", "error", err)
@@ -165,8 +185,8 @@ func (s *Store) GetMatchingFilmEventsByEmail(email string) ([]model.FilmEvent, e
 		events = append(events, model.FilmEvent{
 			Name:            row.Name,
 			URL:             row.Url,
-			StartDate:       row.StartDate.Time,
-			EndDate:         row.EndDate.Time,
+			StartDate:       row.StartDate,
+			EndDate:         row.EndDate,
 			LocationName:    row.LocationName,
 			LocationAddress: row.LocationAddress,
 			OrganizerName:   row.OrganizerName,
@@ -179,23 +199,21 @@ func (s *Store) GetMatchingFilmEventsByEmail(email string) ([]model.FilmEvent, e
 	return events, nil
 }
 
-var Sql *Store
+// Sql is a global variable for the Sqlite instance.
+var Sql *Sqlite
 
+// init initializes the database connection and the Sqlite instance.
 func init() {
-	var (
-		dbUser = os.Getenv("USER")
-		dbHost = "localhost:5432"
-		url    = fmt.Sprintf("postgresql://%s@%s/%s", dbUser, dbHost, dbUser)
-	)
-	fmt.Println(url)
-
-	conn, err := pgxpool.New(context.Background(), url)
+	db, err := sql.Open("sqlite3", "app.db")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to create a connection pool: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Error opening database: %v", err)
 	}
 
-	Sql, err = NewStore(conn)
+	if err = db.Ping(); err != nil {
+		log.Fatalf("Error connecting to the database: %v", err)
+	}
+
+	Sql, err = NewSqlite(db)
 	if err != nil {
 		log.Fatal(err)
 	}

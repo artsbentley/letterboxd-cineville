@@ -7,21 +7,20 @@ package db
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
 )
 
 const deleteUserWatchlist = `-- name: DeleteUserWatchlist :exec
-DELETE FROM watchlist WHERE user_id = $1
+DELETE FROM watchlist WHERE user_id = ?
 `
 
 func (q *Queries) DeleteUserWatchlist(ctx context.Context, userID int64) error {
-	_, err := q.db.Exec(ctx, deleteUserWatchlist, userID)
+	_, err := q.db.ExecContext(ctx, deleteUserWatchlist, userID)
 	return err
 }
 
 const getAllUsers = `-- name: GetAllUsers :many
-SELECT email, letterboxd_username FROM "user"
+SELECT email, letterboxd_username FROM user
 `
 
 type GetAllUsersRow struct {
@@ -30,7 +29,7 @@ type GetAllUsersRow struct {
 }
 
 func (q *Queries) GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error) {
-	rows, err := q.db.Query(ctx, getAllUsers)
+	rows, err := q.db.QueryContext(ctx, getAllUsers)
 	if err != nil {
 		return nil, err
 	}
@@ -42,6 +41,9 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error) {
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -55,24 +57,24 @@ SELECT fe.name, fe.url, fe.start_date, fe.end_date,
        fe.organizer_name, fe.organizer_url, fe.performer_name
 FROM film_event AS fe
 INNER JOIN watchlist AS wl ON fe.name = wl.film_title
-INNER JOIN "user" ON "user".id = wl.user_id
-WHERE "user".email = $1
+INNER JOIN user ON user.id = wl.user_id
+WHERE user.email = ?
 `
 
 type GetMatchingFilmEventsByEmailRow struct {
-	Name            string             `json:"name"`
-	Url             string             `json:"url"`
-	StartDate       pgtype.Timestamptz `json:"start_date"`
-	EndDate         pgtype.Timestamptz `json:"end_date"`
-	LocationName    string             `json:"location_name"`
-	LocationAddress string             `json:"location_address"`
-	OrganizerName   string             `json:"organizer_name"`
-	OrganizerUrl    string             `json:"organizer_url"`
-	PerformerName   string             `json:"performer_name"`
+	Name            string    `json:"name"`
+	Url             string    `json:"url"`
+	StartDate       time.Time `json:"start_date"`
+	EndDate         time.Time `json:"end_date"`
+	LocationName    string    `json:"location_name"`
+	LocationAddress string    `json:"location_address"`
+	OrganizerName   string    `json:"organizer_name"`
+	OrganizerUrl    string    `json:"organizer_url"`
+	PerformerName   string    `json:"performer_name"`
 }
 
 func (q *Queries) GetMatchingFilmEventsByEmail(ctx context.Context, email string) ([]GetMatchingFilmEventsByEmailRow, error) {
-	rows, err := q.db.Query(ctx, getMatchingFilmEventsByEmail, email)
+	rows, err := q.db.QueryContext(ctx, getMatchingFilmEventsByEmail, email)
 	if err != nil {
 		return nil, err
 	}
@@ -95,6 +97,9 @@ func (q *Queries) GetMatchingFilmEventsByEmail(ctx context.Context, email string
 		}
 		items = append(items, i)
 	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -102,11 +107,11 @@ func (q *Queries) GetMatchingFilmEventsByEmail(ctx context.Context, email string
 }
 
 const getUserIDByEmail = `-- name: GetUserIDByEmail :one
-SELECT id FROM "user" WHERE email = $1
+SELECT id FROM user WHERE email = ?
 `
 
 func (q *Queries) GetUserIDByEmail(ctx context.Context, email string) (int64, error) {
-	row := q.db.QueryRow(ctx, getUserIDByEmail, email)
+	row := q.db.QueryRowContext(ctx, getUserIDByEmail, email)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
@@ -118,25 +123,25 @@ INSERT INTO film_event (
     location_name, location_address,
     organizer_name, organizer_url, performer_name
 ) VALUES (
-    $1, $2, $3, $4,
-    $5, $6, $7, $8, $9
+    ?, ?, ?, ?,
+    ?, ?, ?, ?, ?
 )
 `
 
 type InsertFilmEventParams struct {
-	Name            string             `json:"name"`
-	Url             string             `json:"url"`
-	StartDate       pgtype.Timestamptz `json:"start_date"`
-	EndDate         pgtype.Timestamptz `json:"end_date"`
-	LocationName    string             `json:"location_name"`
-	LocationAddress string             `json:"location_address"`
-	OrganizerName   string             `json:"organizer_name"`
-	OrganizerUrl    string             `json:"organizer_url"`
-	PerformerName   string             `json:"performer_name"`
+	Name            string    `json:"name"`
+	Url             string    `json:"url"`
+	StartDate       time.Time `json:"start_date"`
+	EndDate         time.Time `json:"end_date"`
+	LocationName    string    `json:"location_name"`
+	LocationAddress string    `json:"location_address"`
+	OrganizerName   string    `json:"organizer_name"`
+	OrganizerUrl    string    `json:"organizer_url"`
+	PerformerName   string    `json:"performer_name"`
 }
 
 func (q *Queries) InsertFilmEvent(ctx context.Context, arg InsertFilmEventParams) error {
-	_, err := q.db.Exec(ctx, insertFilmEvent,
+	_, err := q.db.ExecContext(ctx, insertFilmEvent,
 		arg.Name,
 		arg.Url,
 		arg.StartDate,
@@ -151,7 +156,7 @@ func (q *Queries) InsertFilmEvent(ctx context.Context, arg InsertFilmEventParams
 }
 
 const insertUser = `-- name: InsertUser :exec
-INSERT INTO "user" (email, letterboxd_username) VALUES ($1, $2)
+INSERT INTO user (email, letterboxd_username) VALUES (?, ?)
 `
 
 type InsertUserParams struct {
@@ -160,12 +165,12 @@ type InsertUserParams struct {
 }
 
 func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
-	_, err := q.db.Exec(ctx, insertUser, arg.Email, arg.LetterboxdUsername)
+	_, err := q.db.ExecContext(ctx, insertUser, arg.Email, arg.LetterboxdUsername)
 	return err
 }
 
 const insertWatchlistItem = `-- name: InsertWatchlistItem :exec
-INSERT INTO watchlist (user_id, film_title) VALUES ($1, $2)
+INSERT INTO watchlist (user_id, film_title) VALUES (?, ?)
 `
 
 type InsertWatchlistItemParams struct {
@@ -174,22 +179,22 @@ type InsertWatchlistItemParams struct {
 }
 
 func (q *Queries) InsertWatchlistItem(ctx context.Context, arg InsertWatchlistItemParams) error {
-	_, err := q.db.Exec(ctx, insertWatchlistItem, arg.UserID, arg.FilmTitle)
+	_, err := q.db.ExecContext(ctx, insertWatchlistItem, arg.UserID, arg.FilmTitle)
 	return err
 }
 
 const updateUserEmailConfirmation = `-- name: UpdateUserEmailConfirmation :exec
-UPDATE "user"
-SET email_confirmation = $1
-WHERE email = $2
+UPDATE user
+SET email_confirmation = ?
+WHERE email = ?
 `
 
 type UpdateUserEmailConfirmationParams struct {
-	EmailConfirmation bool   `json:"email_confirmation"`
+	EmailConfirmation int64  `json:"email_confirmation"`
 	Email             string `json:"email"`
 }
 
 func (q *Queries) UpdateUserEmailConfirmation(ctx context.Context, arg UpdateUserEmailConfirmationParams) error {
-	_, err := q.db.Exec(ctx, updateUserEmailConfirmation, arg.EmailConfirmation, arg.Email)
+	_, err := q.db.ExecContext(ctx, updateUserEmailConfirmation, arg.EmailConfirmation, arg.Email)
 	return err
 }

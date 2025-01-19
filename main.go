@@ -23,9 +23,9 @@ import (
 //   - setup scraping of filmevents into main file, first every time program is
 //     run, later as concurrent cron
 func main() {
-	Store := database.Sql
-	FilmEventScraper := scrape.NewFilmEventScraper(Store)
-	WatchlistScraper := scrape.NewWatchlistScraper(Store)
+	Sqlite := database.Sql
+	FilmEventScraper := scrape.NewFilmEventScraper(Sqlite)
+	WatchlistScraper := scrape.NewWatchlistScraper(Sqlite)
 
 	go FilmEventScraper.Scrape()
 	go WatchlistScraper.Scrape()
@@ -37,7 +37,7 @@ func main() {
 	e.Use(middleware.Recover())
 
 	// Initialize handlers
-	userHandler := handlers.NewUserHandler(Store)
+	userHandler := handlers.NewUserHandler(Sqlite)
 
 	// Routes
 	e.GET("/", userHandler.HandleGetUsers)
