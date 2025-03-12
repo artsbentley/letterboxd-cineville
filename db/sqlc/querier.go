@@ -9,14 +9,16 @@ import (
 )
 
 type Querier interface {
-	DeleteUserWatchlist(ctx context.Context, userID int64) error
+	DeleteUserWatchlist(ctx context.Context, email string) error
 	GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error)
 	GetMatchingFilmEventsByEmail(ctx context.Context, email string) ([]GetMatchingFilmEventsByEmailRow, error)
 	GetUserIDByEmail(ctx context.Context, email string) (int64, error)
+	GetUserIDByToken(ctx context.Context, token string) (int64, error)
+	GetUserWatchlist(ctx context.Context, email string) ([]string, error)
 	InsertFilmEvent(ctx context.Context, arg InsertFilmEventParams) error
 	InsertUser(ctx context.Context, arg InsertUserParams) error
-	InsertWatchlistItem(ctx context.Context, arg InsertWatchlistItemParams) error
 	UpdateUserEmailConfirmation(ctx context.Context, arg UpdateUserEmailConfirmationParams) error
+	UpdateUserWatchlist(ctx context.Context, arg UpdateUserWatchlistParams) error
 }
 
 var _ Querier = (*Queries)(nil)

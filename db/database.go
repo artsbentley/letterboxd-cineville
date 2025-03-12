@@ -29,20 +29,30 @@ func NewStore(db *pgxpool.Pool) (*Store, error) {
 	}, nil
 }
 
+// NOTE: do i really want token in the business logic model?
 func (s *Store) CreateNewUser(user model.User) error {
 	err := s.queries.InsertUser(context.Background(), sqlc.InsertUserParams{
 		Email:              user.Email,
 		LetterboxdUsername: user.LetterboxdUsername,
+		Token:              user.Token,
 	})
 	return err
 }
 
-func (s *Store) ConfirmUserEmail(email string) error {
+func (s *Store) ConfirmUserEmail(id int) error {
 	err := s.queries.UpdateUserEmailConfirmation(context.Background(), sqlc.UpdateUserEmailConfirmationParams{
-		Email:             email,
+		ID:                int64(id),
 		EmailConfirmation: true,
 	})
 	return err
+}
+
+func (s *Store) GetUserIDByToken(token string) (int, error) {
+	id, err := s.queries.GetUserIDByToken(context.Background(), token)
+	if err != nil {
+		return 0, err
+	}
+	return int(id), err
 }
 
 func (s *Store) InsertFilmEvent(event model.FilmEvent) error {
@@ -115,7 +125,6 @@ func (s *Store) GetUserID(email, username string) (int64, error) {
 func (s *Store) InsertWatchlist(user model.User) error {
 	ctx := context.Background()
 
-	// Use pgx/v5 TxOptions instead of v4
 	tx, err := s.DB.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -128,28 +137,22 @@ func (s *Store) InsertWatchlist(user model.User) error {
 
 	q := s.queries.WithTx(tx)
 
-	userID, err := s.GetUserID(user.Email, user.LetterboxdUsername)
-	if err != nil {
-		return fmt.Errorf("failed to get/create user ID: %w", err)
-	}
-
-	if err := q.DeleteUserWatchlist(ctx, userID); err != nil {
+	if err := q.DeleteUserWatchlist(ctx, user.Email); err != nil {
 		return fmt.Errorf("failed to delete existing watchlist: %w", err)
 	}
 
-	for _, film := range user.Watchlist {
-		if err := q.InsertWatchlistItem(ctx, sqlc.InsertWatchlistItemParams{
-			UserID:    userID,
-			FilmTitle: film,
-		}); err != nil {
-			return fmt.Errorf("failed to insert watchlist item: %w", err)
-		}
+	userWatchlistParams := sqlc.UpdateUserWatchlistParams{
+		Email:     user.Email,
+		Watchlist: user.Watchlist,
+	}
+
+	if err := q.UpdateUserWatchlist(ctx, userWatchlistParams); err != nil {
+		return fmt.Errorf("failed to insert watchlist for user: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
-
 	return nil
 }
 
