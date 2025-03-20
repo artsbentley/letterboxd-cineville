@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	database "letterboxd-cineville/db"
 	"letterboxd-cineville/handlers"
 	"letterboxd-cineville/scrape"
 	"letterboxd-cineville/service"
 	"log"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/mattn/go-sqlite3"
@@ -20,10 +23,21 @@ import (
 // - image storage
 // - smtp server
 
+var (
+	dbUser = "postgres"
+	dbHost = "localhost:5432"
+	url    = fmt.Sprintf("postgresql://%s@%s/%s", dbUser, dbHost, dbUser)
+)
+
 // TODO:
 //   - setup scraping of filmevents into main file, first every time program is
 //     run, later as concurrent cron
 func main() {
+	conn, err := pgxpool.New(context.Background(), url)
+	if err != nil {
+		log.Fatalf("Unable to create a connection pool: %v\n", err)
+	}
+
 	Store := database.Sql
 	Service := service.NewService(Store)
 	// FilmEventScraper := scrape.NewFilmEventScraper(Store)
@@ -51,50 +65,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
-// users, err := Sqlite.GetAllUsers()
-// if err != nil {
-// 	log.Fatal(err)
-// }
-//
-// fmt.Println("Users in the database:")
-// for _, user := range users {
-// 	fmt.Printf("Email: %s, Username: %s\n", user.Email, user.Username)
-// }
-//
-// filmEvents, err := scrape.CollectFilmEvents("https://www.filmvandaag.nl/filmladder/stad/13-amsterdam")
-// if err != nil {
-// 	log.Fatal(err)
-// }
-//
-// for _, event := range filmEvents {
-// 	err := Sqlite.InsertFilmEvent(event)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// }
-//
-// watchlist, err := scrape.ScrapeWatchlist("deltore")
-// if err != nil {
-// 	log.Fatal(err)
-// }
-//
-// lbox := model.Letterboxd{
-// 	Email:     "arnoarts@hotmail.com",
-// 	Username:  "deltore",
-// 	Watchlist: watchlist,
-// }
-//
-// err = Sqlite.InsertWatchlist(lbox)
-// if err != nil {
-// 	log.Fatal(err)
-// }
-//
-// matches, err := Sqlite.GetMatchingFilmEventsByEmail("arnoarts@hotmail.com")
-// if err != nil {
-// 	log.Fatal(err)
-// }
-//
-// for _, match := range matches {
-// 	fmt.Println(match.Name, match.LocationName, match.StartDate)
-// }

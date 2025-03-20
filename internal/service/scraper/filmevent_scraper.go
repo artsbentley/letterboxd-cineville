@@ -1,46 +1,54 @@
-package scrape
+package scraper
 
 import (
 	"encoding/json"
 	"fmt"
-	"letterboxd-cineville/db"
-	"letterboxd-cineville/model"
+	"letterboxd-cineville/internal/model"
+	"letterboxd-cineville/internal/service"
 	"log"
 	"log/slog"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/gocolly/colly"
-	"github.com/robfig/cron/v3"
+	"github.com/lmittmann/tint"
 )
 
-func (s *FilmEventScraper) Scrape() {
-	// _, err := s.cron.AddFunc("0 2 * * 0", func() {
-	_, err := s.cron.AddFunc("* * * * *", func() {
-		s.logger.Info("FilmEventScraper Scheduled task running...")
-		filmEvents, err := CollectFilmEvents("https://www.filmvandaag.nl/filmladder/stad/13-amsterdam")
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, event := range filmEvents {
-			err := s.db.InsertFilmEvent(event)
-			if err != nil {
-				s.logger.Error("Failed to insert FilmEvent: ", "error", err)
-			}
-		}
-	})
-	if err != nil {
-		log.Fatalf("Error scheduling FilmEventScraper task: %v", err)
-	}
-	s.cron.Start() // Start the cron scheduler
+type FilmEventScraper struct {
+	UserService      service.UserProvider
+	FilmEventService service.FilmEventProvider
+	Logger           *slog.Logger
 }
 
-func NewFilmEventScraper(db *db.Store) *FilmEventScraper {
+func NewFilmEventScraper(userService service.UserProvider, filmEventService service.FilmEventProvider) *FilmEventScraper {
 	return &FilmEventScraper{
-		logger: slog.Default(),
-		db:     db,
-		cron:   cron.New(),
+		UserService:      userService,
+		FilmEventService: filmEventService,
+		Logger:           slog.New(tint.NewHandler(os.Stderr, nil)),
 	}
+}
+
+// TODO: implement every city
+func (s *FilmEventScraper) Scrape() error {
+	filmEvents, err := CollectFilmEvents("https://www.filmvandaag.nl/filmladder/stad/13-amsterdam")
+	// filmEvents, err := CollectFilmEvents("https://www.filmvandaag.nl/filmladder/stad/159-rotterdam")
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, event := range filmEvents {
+		err := s.FilmEventService.InsertFilmEvent(event)
+		if err != nil {
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				continue
+			} else {
+				s.Logger.Error("Failed to insert FilmEvent", "error", err)
+			}
+		} else {
+			s.Logger.Info("Successfully inserted FilmEvent", "event", event.Name)
+		}
+	}
+	return nil
 }
 
 func ScrapeFilmEvents(e *colly.HTMLElement, filmEvents *[]model.FilmEvent) {

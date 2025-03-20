@@ -17,13 +17,9 @@ type FilmEvent struct {
 }
 
 type User struct {
-	Email              string
-	LetterboxdUsername string
-	Watchlist          []string
-	Token              string
+	ID                 int64      `json:"id"`
+	Email              string     `json:"email"`
+	LetterboxdUsername string     `json:"letterboxd_username"`
+	CreatedAt          *time.Time `json:"created_at"`
+	Watchlist          []string   `json:"watchlist"`
 }
-
-// type User struct {
-// 	Username     string
-// 	CityInterest []string
-// }
