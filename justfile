@@ -16,6 +16,9 @@ letterboxd:
 film:
     go run ./cmd/film/main.go
 
+sql:
+	rainfrog --url {{DB_STRING}}
+
 
 reset:
 	docker compose down
