@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -39,7 +41,7 @@ DELETE FROM users
 WHERE id = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
 }
@@ -70,7 +72,7 @@ FROM users
 WHERE id = $1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(
@@ -128,10 +130,10 @@ RETURNING id, email, letterboxd_username, created_at, updated_at, watchlist
 `
 
 type UpdateUserParams struct {
-	ID                 int64    `json:"id"`
-	Email              string   `json:"email"`
-	LetterboxdUsername string   `json:"letterboxd_username"`
-	Watchlist          []string `json:"watchlist"`
+	ID                 uuid.UUID `json:"id"`
+	Email              string    `json:"email"`
+	LetterboxdUsername string    `json:"letterboxd_username"`
+	Watchlist          []string  `json:"watchlist"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {

@@ -6,10 +6,12 @@ package db
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type FilmEvent struct {
-	ID              int64     `json:"id"`
+	ID              uuid.UUID `json:"id"`
 	Name            string    `json:"name"`
 	Url             string    `json:"url"`
 	StartDate       time.Time `json:"start_date"`
@@ -22,7 +24,7 @@ type FilmEvent struct {
 }
 
 type User struct {
-	ID                 int64      `json:"id"`
+	ID                 uuid.UUID  `json:"id"`
 	Email              string     `json:"email"`
 	LetterboxdUsername string     `json:"letterboxd_username"`
 	CreatedAt          *time.Time `json:"created_at"`

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"letterboxd-cineville/internal/model"
 	"letterboxd-cineville/internal/service"
+	"letterboxd-cineville/internal/types"
 	"log"
 	"log/slog"
 	"os"
@@ -31,11 +32,23 @@ func NewFilmEventScraper(userService service.UserProvider, filmEventService serv
 
 // TODO: implement every city
 func (s *FilmEventScraper) Scrape() error {
-	filmEvents, err := CollectFilmEvents("https://www.filmvandaag.nl/filmladder/stad/13-amsterdam")
-	// filmEvents, err := CollectFilmEvents("https://www.filmvandaag.nl/filmladder/stad/159-rotterdam")
-	if err != nil {
-		log.Fatal(err)
+	for _, location := range types.LocationsURL {
+		url := s.constructURL(location)
+		filmEvents, err := CollectFilmEvents(url)
+		if err != nil {
+			log.Fatal(err)
+		}
+		s.processFilmEvents(filmEvents)
 	}
+	return nil
+}
+
+func (s *FilmEventScraper) constructURL(location string) string {
+	baseURL := "https://www.filmvandaag.nl/filmladder/stad/"
+	return fmt.Sprintf("%s%s", baseURL, location)
+}
+
+func (s *FilmEventScraper) processFilmEvents(filmEvents []model.FilmEvent) {
 	for _, event := range filmEvents {
 		err := s.FilmEventService.InsertFilmEvent(event)
 		if err != nil {
@@ -48,7 +61,6 @@ func (s *FilmEventScraper) Scrape() error {
 			s.Logger.Info("Successfully inserted FilmEvent", "event", event.Name)
 		}
 	}
-	return nil
 }
 
 func ScrapeFilmEvents(e *colly.HTMLElement, filmEvents *[]model.FilmEvent) {

@@ -31,8 +31,9 @@ func main() {
 	watchlistService := service.NewWatchlistService(conn, userService)
 	filmEventService := service.NewFilmEventService(conn)
 
-	_ = userService.RegisterUser("arnoarts@hotmail.com", "deltore")
-	_ = userService.RegisterUser("sannilehtonen@gmail.com", "sannisideup")
+	_ = userService.RegisterUser("arnoarts@hotmail.com", "deltore", []string{"amsterdam", "leiden"})
+	_ = userService.RegisterUser("sannilehtonen@gmail.com", "sannisideup", []string{"leiden", "utrecht"})
+	_ = userService.RegisterUser("bananaman@gmail.com", "hahahah", []string{"leiden", "utrecht", "amsterdam", "lisse"})
 
 	scrapeService := scraper.NewScraperService(userService, watchlistService, filmEventService)
 

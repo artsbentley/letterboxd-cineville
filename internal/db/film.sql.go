@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createFilmEvent = `-- name: CreateFilmEvent :one
@@ -63,7 +65,7 @@ DELETE FROM film_event
 WHERE id = $1
 `
 
-func (q *Queries) DeleteFilmEvent(ctx context.Context, id int64) error {
+func (q *Queries) DeleteFilmEvent(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteFilmEvent, id)
 	return err
 }
@@ -84,7 +86,7 @@ FROM film_event
 WHERE id = $1
 `
 
-func (q *Queries) GetFilmEventByID(ctx context.Context, id int64) (FilmEvent, error) {
+func (q *Queries) GetFilmEventByID(ctx context.Context, id uuid.UUID) (FilmEvent, error) {
 	row := q.db.QueryRow(ctx, getFilmEventByID, id)
 	var i FilmEvent
 	err := row.Scan(

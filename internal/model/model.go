@@ -2,6 +2,8 @@ package model
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type FilmEvent struct {
@@ -17,9 +19,10 @@ type FilmEvent struct {
 }
 
 type User struct {
-	ID                 int64      `json:"id"`
+	ID                 uuid.UUID  `json:"id"`
 	Email              string     `json:"email"`
 	LetterboxdUsername string     `json:"letterboxd_username"`
 	CreatedAt          *time.Time `json:"created_at"`
 	Watchlist          []string   `json:"watchlist"`
+	Locations          []string   `json:"locations"`
 }
