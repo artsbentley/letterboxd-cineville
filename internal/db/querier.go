@@ -19,6 +19,7 @@ type Querier interface {
 	DeletePastFilmEvents(ctx context.Context) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	DeleteUserWatchlist(ctx context.Context, email string) error
+	GetFilmEventByCity(ctx context.Context, lower string) ([]FilmEvent, error)
 	GetFilmEventByID(ctx context.Context, id uuid.UUID) (FilmEvent, error)
 	GetFilmEventsByUserEmail(ctx context.Context, email string) ([]FilmEvent, error)
 	GetLocationByCity(ctx context.Context, city string) (uuid.UUID, error)

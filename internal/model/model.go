@@ -13,6 +13,7 @@ type FilmEvent struct {
 	EndDate         time.Time
 	LocationName    string
 	LocationAddress string
+	City            string
 	OrganizerName   string
 	OrganizerURL    string
 	PerformerName   string

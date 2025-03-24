@@ -18,6 +18,7 @@ type FilmEvent struct {
 	EndDate         time.Time `json:"end_date"`
 	LocationName    string    `json:"location_name"`
 	LocationAddress string    `json:"location_address"`
+	City            string    `json:"city"`
 	OrganizerName   string    `json:"organizer_name"`
 	OrganizerUrl    string    `json:"organizer_url"`
 	PerformerName   string    `json:"performer_name"`

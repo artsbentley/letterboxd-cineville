@@ -10,6 +10,7 @@ CREATE TABLE film_event (
     end_date TIMESTAMPTZ NOT NULL,
     location_name TEXT NOT NULL,
     location_address TEXT NOT NULL,
+	city TEXT NOT NULL,
     organizer_name TEXT NOT NULL,
     organizer_url TEXT NOT NULL,
     performer_name TEXT NOT NULL,
@@ -29,7 +30,6 @@ CREATE TABLE locations (
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     city TEXT UNIQUE NOT NULL
 );
-
 
 CREATE TABLE user_locations (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,

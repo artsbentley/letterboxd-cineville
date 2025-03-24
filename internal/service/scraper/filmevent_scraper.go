@@ -30,13 +30,18 @@ func NewFilmEventScraper(userService service.UserProvider, filmEventService serv
 	}
 }
 
-// TODO: implement every city
 func (s *FilmEventScraper) Scrape() error {
-	for _, location := range types.LocationsURL {
-		url := s.constructURL(location)
+	for _, city := range types.Cities {
+		url := s.constructURL(city.URLPartial)
 		filmEvents, err := CollectFilmEvents(url)
 		if err != nil {
 			log.Fatal(err)
+		}
+		// NOTE: this will be unnecessary if we end up using locationaddress
+		// value in the database to retrieve the city instead
+		// set the city location for the film events
+		for i := range filmEvents {
+			filmEvents[i].City = city.Name
 		}
 		s.processFilmEvents(filmEvents)
 	}

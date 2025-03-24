@@ -14,10 +14,10 @@ import (
 
 const createFilmEvent = `-- name: CreateFilmEvent :one
 INSERT INTO film_event (
-    name, url, start_date, end_date, location_name, location_address, organizer_name, organizer_url, performer_name
+    name, url, start_date, end_date, location_name, location_address, city, organizer_name, organizer_url, performer_name
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, name, url, start_date, end_date, location_name, location_address, organizer_name, organizer_url, performer_name
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+RETURNING id, name, url, start_date, end_date, location_name, location_address, city, organizer_name, organizer_url, performer_name
 `
 
 type CreateFilmEventParams struct {
@@ -27,6 +27,7 @@ type CreateFilmEventParams struct {
 	EndDate         time.Time `json:"end_date"`
 	LocationName    string    `json:"location_name"`
 	LocationAddress string    `json:"location_address"`
+	City            string    `json:"city"`
 	OrganizerName   string    `json:"organizer_name"`
 	OrganizerUrl    string    `json:"organizer_url"`
 	PerformerName   string    `json:"performer_name"`
@@ -40,6 +41,7 @@ func (q *Queries) CreateFilmEvent(ctx context.Context, arg CreateFilmEventParams
 		arg.EndDate,
 		arg.LocationName,
 		arg.LocationAddress,
+		arg.City,
 		arg.OrganizerName,
 		arg.OrganizerUrl,
 		arg.PerformerName,
@@ -53,6 +55,7 @@ func (q *Queries) CreateFilmEvent(ctx context.Context, arg CreateFilmEventParams
 		&i.EndDate,
 		&i.LocationName,
 		&i.LocationAddress,
+		&i.City,
 		&i.OrganizerName,
 		&i.OrganizerUrl,
 		&i.PerformerName,
@@ -80,8 +83,46 @@ func (q *Queries) DeletePastFilmEvents(ctx context.Context) error {
 	return err
 }
 
+const getFilmEventByCity = `-- name: GetFilmEventByCity :many
+SELECT id, name, url, start_date, end_date, location_name, location_address, city, organizer_name, organizer_url, performer_name
+FROM film_event
+WHERE TRIM(LOWER(SUBSTRING_INDEX(address, ',', -1))) = LOWER($1)
+`
+
+func (q *Queries) GetFilmEventByCity(ctx context.Context, lower string) ([]FilmEvent, error) {
+	rows, err := q.db.Query(ctx, getFilmEventByCity, lower)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FilmEvent{}
+	for rows.Next() {
+		var i FilmEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Url,
+			&i.StartDate,
+			&i.EndDate,
+			&i.LocationName,
+			&i.LocationAddress,
+			&i.City,
+			&i.OrganizerName,
+			&i.OrganizerUrl,
+			&i.PerformerName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFilmEventByID = `-- name: GetFilmEventByID :one
-SELECT id, name, url, start_date, end_date, location_name, location_address, organizer_name, organizer_url, performer_name
+SELECT id, name, url, start_date, end_date, location_name, location_address, city, organizer_name, organizer_url, performer_name
 FROM film_event
 WHERE id = $1
 `
@@ -97,6 +138,7 @@ func (q *Queries) GetFilmEventByID(ctx context.Context, id uuid.UUID) (FilmEvent
 		&i.EndDate,
 		&i.LocationName,
 		&i.LocationAddress,
+		&i.City,
 		&i.OrganizerName,
 		&i.OrganizerUrl,
 		&i.PerformerName,
@@ -105,7 +147,7 @@ func (q *Queries) GetFilmEventByID(ctx context.Context, id uuid.UUID) (FilmEvent
 }
 
 const getFilmEventsByUserEmail = `-- name: GetFilmEventsByUserEmail :many
-SELECT fe.id, fe.name, fe.url, fe.start_date, fe.end_date, fe.location_name, fe.location_address, fe.organizer_name, fe.organizer_url, fe.performer_name
+SELECT fe.id, fe.name, fe.url, fe.start_date, fe.end_date, fe.location_name, fe.location_address, fe.city, fe.organizer_name, fe.organizer_url, fe.performer_name
 FROM film_event fe
 JOIN users u ON fe.name = ANY(u.watchlist)
 WHERE u.email = $1
@@ -128,6 +170,7 @@ func (q *Queries) GetFilmEventsByUserEmail(ctx context.Context, email string) ([
 			&i.EndDate,
 			&i.LocationName,
 			&i.LocationAddress,
+			&i.City,
 			&i.OrganizerName,
 			&i.OrganizerUrl,
 			&i.PerformerName,
@@ -143,7 +186,7 @@ func (q *Queries) GetFilmEventsByUserEmail(ctx context.Context, email string) ([
 }
 
 const listFilmEvents = `-- name: ListFilmEvents :many
-SELECT id, name, url, start_date, end_date, location_name, location_address, organizer_name, organizer_url, performer_name
+SELECT id, name, url, start_date, end_date, location_name, location_address, city, organizer_name, organizer_url, performer_name
 FROM film_event
 `
 
@@ -164,6 +207,7 @@ func (q *Queries) ListFilmEvents(ctx context.Context) ([]FilmEvent, error) {
 			&i.EndDate,
 			&i.LocationName,
 			&i.LocationAddress,
+			&i.City,
 			&i.OrganizerName,
 			&i.OrganizerUrl,
 			&i.PerformerName,
