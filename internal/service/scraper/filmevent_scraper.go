@@ -8,25 +8,21 @@ import (
 	"letterboxd-cineville/internal/types"
 	"log"
 	"log/slog"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/gocolly/colly"
-	"github.com/lmittmann/tint"
 )
 
 type FilmEventScraper struct {
 	UserService      service.UserProvider
 	FilmEventService service.FilmEventProvider
-	Logger           *slog.Logger
 }
 
 func NewFilmEventScraper(userService service.UserProvider, filmEventService service.FilmEventProvider) *FilmEventScraper {
 	return &FilmEventScraper{
 		UserService:      userService,
 		FilmEventService: filmEventService,
-		Logger:           slog.New(tint.NewHandler(os.Stderr, nil)),
 	}
 }
 
@@ -60,10 +56,10 @@ func (s *FilmEventScraper) processFilmEvents(filmEvents []model.FilmEvent) {
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 				continue
 			} else {
-				s.Logger.Error("Failed to insert FilmEvent", "error", err)
+				slog.Error("Failed to insert FilmEvent", "error", err)
 			}
 		} else {
-			s.Logger.Info("Successfully inserted FilmEvent", "event", event.Name)
+			slog.Info("Successfully inserted FilmEvent", "event", event.Name)
 		}
 	}
 }

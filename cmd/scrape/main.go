@@ -6,10 +6,10 @@ import (
 	"letterboxd-cineville/internal/db"
 	"letterboxd-cineville/internal/service"
 	"letterboxd-cineville/internal/service/scraper"
-	"log"
 	"log/slog"
 	"os"
 
+	"github.com/charmbracelet/log"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmittmann/tint"
 )
@@ -23,6 +23,10 @@ var (
 
 func main() {
 	slog.SetDefault(slog.New(tint.NewHandler(os.Stderr, nil)))
+	// TODO: use gum?
+	// slog.SetDefault(slog.New(log.NewWithOptions(os.Stderr, log.Options{
+	// 	ReportTimestamp: true,
+	// })))
 
 	pgx, err := pgxpool.New(context.Background(), url)
 	if err != nil {

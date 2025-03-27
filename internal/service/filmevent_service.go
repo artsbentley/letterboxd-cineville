@@ -5,10 +5,6 @@ import (
 	"fmt"
 	"letterboxd-cineville/internal/db"
 	"letterboxd-cineville/internal/model"
-	"log/slog"
-	"os"
-
-	"github.com/lmittmann/tint"
 )
 
 type FilmEventProvider interface {
@@ -18,13 +14,11 @@ type FilmEventProvider interface {
 
 type FilmEventService struct {
 	db.Querier
-	Logger *slog.Logger
 }
 
 func NewFilmEventService(conn *db.Queries) *FilmEventService {
 	return &FilmEventService{
 		Querier: conn,
-		Logger:  slog.New(tint.NewHandler(os.Stderr, nil)),
 	}
 }
 
