@@ -6,9 +6,6 @@ import (
 	"letterboxd-cineville/internal/db"
 	"letterboxd-cineville/internal/model"
 	"log/slog"
-	"os"
-
-	"github.com/lmittmann/tint"
 )
 
 type UserProvider interface {
@@ -18,13 +15,11 @@ type UserProvider interface {
 
 type UserService struct {
 	db.Querier
-	Logger *slog.Logger
 }
 
 func NewUserService(conn *db.Queries) *UserService {
 	return &UserService{
 		Querier: conn,
-		Logger:  slog.New(tint.NewHandler(os.Stderr, nil)),
 	}
 }
 
@@ -49,7 +44,7 @@ func (s *UserService) GetAllUsers() ([]model.User, error) {
 			Locations:          locations,
 		})
 	}
-	s.Logger.Info("Retrieved all users successfully")
+	slog.Info("Retrieved all users successfully")
 	return users, nil
 }
 

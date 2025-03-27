@@ -4,39 +4,35 @@ import (
 	"fmt"
 	"letterboxd-cineville/internal/service"
 	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gocolly/colly"
-	"github.com/lmittmann/tint"
 )
 
 type WatchlistScraper struct {
 	UserService      service.UserProvider
 	WatchlistService service.WatchlistProvider
-	Logger           *slog.Logger
 }
 
 func NewWatchlistScraper(userService service.UserProvider, watchlistService service.WatchlistProvider) *WatchlistScraper {
 	return &WatchlistScraper{
 		UserService:      userService,
 		WatchlistService: watchlistService,
-		Logger:           slog.New(tint.NewHandler(os.Stderr, nil)),
 	}
 }
 
 func (s *WatchlistScraper) Scrape() error {
 	users, err := s.UserService.GetAllUsers()
 	if err != nil {
-		// s.Logger.Error("failed to get users", "error", err)
+		// slog.Error("failed to get users", "error", err)
 		return err
 	}
 
 	for _, user := range users {
 		watchlist, err := ScrapeUserWatchlist(user.LetterboxdUsername)
 		if err != nil {
-			s.Logger.Warn("failed to scrape watchlist",
+			slog.Warn("failed to scrape watchlist",
 				"user", user.LetterboxdUsername,
 				"email", user.Email,
 				"error", err)
@@ -48,18 +44,18 @@ func (s *WatchlistScraper) Scrape() error {
 		if err = s.WatchlistService.InsertWatchlist(user); err != nil {
 			// Handle unique constraint violation separately
 			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-				s.Logger.Info("skipping duplicate watchlist entry",
+				slog.Info("skipping duplicate watchlist entry",
 					"user", user.LetterboxdUsername,
 					"email", user.Email)
 			} else {
-				s.Logger.Error("failed to update user watchlist",
+				slog.Error("failed to update user watchlist",
 					"user", user.LetterboxdUsername,
 					"email", user.Email,
 					"error", err)
 			}
 			continue
 		}
-		s.Logger.Info("Successfully updated user watchlist",
+		slog.Info("Successfully updated user watchlist",
 			"user", user.LetterboxdUsername,
 			"email", user.Email)
 	}

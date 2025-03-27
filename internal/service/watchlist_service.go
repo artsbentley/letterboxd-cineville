@@ -4,10 +4,6 @@ import (
 	"context"
 	"letterboxd-cineville/internal/db"
 	"letterboxd-cineville/internal/model"
-	"log/slog"
-	"os"
-
-	"github.com/lmittmann/tint"
 )
 
 type WatchlistProvider interface {
@@ -19,14 +15,12 @@ type WatchlistProvider interface {
 type WatchlistService struct {
 	db.Querier
 	UserService UserProvider
-	Logger      *slog.Logger
 }
 
 func NewWatchlistService(conn *db.Queries, userProvider UserProvider) *WatchlistService {
 	return &WatchlistService{
 		Querier:     conn,
 		UserService: userProvider,
-		Logger:      slog.New(tint.NewHandler(os.Stderr, nil)),
 	}
 }
 

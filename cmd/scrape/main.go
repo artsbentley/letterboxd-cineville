@@ -7,9 +7,11 @@ import (
 	"letterboxd-cineville/internal/service"
 	"letterboxd-cineville/internal/service/scraper"
 	"log"
+	"log/slog"
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/lmittmann/tint"
 )
 
 var (
@@ -20,6 +22,8 @@ var (
 )
 
 func main() {
+	slog.SetDefault(slog.New(tint.NewHandler(os.Stderr, nil)))
+
 	pgx, err := pgxpool.New(context.Background(), url)
 	if err != nil {
 		log.Fatalf("Unable to create a connection pool: %v\n", err)
