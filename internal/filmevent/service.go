@@ -1,4 +1,4 @@
-package service
+package filmevent
 
 import (
 	"context"
@@ -7,23 +7,23 @@ import (
 	"letterboxd-cineville/internal/model"
 )
 
-type FilmEventProvider interface {
+type Provider interface {
 	InsertFilmEvent(model.FilmEvent) error
 	DeletePastFilmEvents() error
 }
 
-type FilmEventService struct {
+type Service struct {
 	db.Querier
 }
 
-func NewFilmEventService(conn *db.Queries) *FilmEventService {
-	return &FilmEventService{
+func NewService(conn *db.Queries) *Service {
+	return &Service{
 		Querier: conn,
 	}
 }
 
 // TODO: remember to implement this into main logic
-func (s *FilmEventService) DeletePastFilmEvents() error {
+func (s *Service) DeletePastFilmEvents() error {
 	err := s.Querier.DeletePastFilmEvents(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to delete film event rows that are in the past: ", err)
@@ -31,7 +31,7 @@ func (s *FilmEventService) DeletePastFilmEvents() error {
 	return nil
 }
 
-func (s *FilmEventService) InsertFilmEvent(event model.FilmEvent) error {
+func (s *Service) InsertFilmEvent(event model.FilmEvent) error {
 	arg := db.CreateFilmEventParams{
 		Name:            event.Name,
 		Url:             event.URL,

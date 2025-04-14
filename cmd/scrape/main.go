@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"letterboxd-cineville/internal/db"
-	"letterboxd-cineville/internal/service"
-	"letterboxd-cineville/internal/service/scraper"
+	"letterboxd-cineville/internal/filmevent"
+	"letterboxd-cineville/internal/scraper"
+	"letterboxd-cineville/internal/user"
+	"letterboxd-cineville/internal/watchlist"
 	"log/slog"
 	"os"
 
@@ -35,15 +37,18 @@ func main() {
 
 	conn := db.New(pgx)
 
-	userService := service.NewUserService(conn)
-	watchlistService := service.NewWatchlistService(conn, userService)
-	filmEventService := service.NewFilmEventService(conn)
+	// userService := service.NewUserService(conn)
+	userService := user.NewService(conn)
+	// watchlistService := service.NewWatchlistService(conn, userService)
+	watchlistService := watchlist.NewService(conn, userService)
+	// filmEventService := service.NewFilmEventService(conn)
+	filmEventService := filmevent.NewService(conn)
 
 	_ = userService.RegisterUser("arnoarts@hotmail.com", "deltore", []string{"amsterdam", "leiden"})
 	_ = userService.RegisterUser("sannilehtonen@gmail.com", "sannisideup", []string{"leiden", "utrecht"})
 	_ = userService.RegisterUser("bananaman@gmail.com", "hahahah", []string{"leiden", "utrecht", "amsterdam", "lisse"})
 
-	scrapeService := scraper.NewScraperService(userService, watchlistService, filmEventService)
+	scrapeService := scraper.NewService(userService, watchlistService, filmEventService)
 
 	users, err := userService.GetAllUsers()
 	if err != nil {

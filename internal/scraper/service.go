@@ -1,39 +1,41 @@
 package scraper
 
 import (
-	"letterboxd-cineville/internal/service"
+	"letterboxd-cineville/internal/filmevent"
+	"letterboxd-cineville/internal/user"
+	"letterboxd-cineville/internal/watchlist"
 	"log/slog"
 	"time"
 
 	"github.com/robfig/cron/v3"
 )
 
-type Scraper interface {
+type ScraperProvider interface {
 	Scrape() error
 }
 
-type ScraperService struct {
-	scrapers []Scraper
+type Service struct {
+	scrapers []ScraperProvider
 	cron     *cron.Cron
 }
 
-func NewScraperService(
-	userService service.UserProvider,
-	watchlistService service.WatchlistProvider,
-	filmEventService service.FilmEventProvider,
-) *ScraperService {
+func NewService(
+	userService user.Provider,
+	watchlistService watchlist.Provider,
+	filmEventService filmevent.Provider,
+) *Service {
 	watchlistScraper := NewWatchlistScraper(userService, watchlistService)
 	filmEventScraper := NewFilmEventScraper(userService, filmEventService)
 
-	return &ScraperService{
-		scrapers: []Scraper{watchlistScraper, filmEventScraper},
+	return &Service{
+		scrapers: []ScraperProvider{watchlistScraper, filmEventScraper},
 		cron:     cron.New(cron.WithLocation(time.FixedZone("CET", 1*60*60))),
 	}
 }
 
 // TODO:
 // does this func need a Go routine?
-func (s *ScraperService) Start() {
+func (s *Service) Start() {
 	cronExpr := "* * * * *"
 	for _, scraper := range s.scrapers {
 		scraper := scraper // avoid closure capture issues

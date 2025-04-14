@@ -1,4 +1,4 @@
-package service
+package user
 
 import (
 	"context"
@@ -8,22 +8,22 @@ import (
 	"log/slog"
 )
 
-type UserProvider interface {
+type Provider interface {
 	GetAllUsers() ([]model.User, error)
 	RegisterUser(string, string, []string) error
 }
 
-type UserService struct {
+type Service struct {
 	db.Querier
 }
 
-func NewUserService(conn *db.Queries) *UserService {
-	return &UserService{
+func NewService(conn *db.Queries) *Service {
+	return &Service{
 		Querier: conn,
 	}
 }
 
-func (s *UserService) GetAllUsers() ([]model.User, error) {
+func (s *Service) GetAllUsers() ([]model.User, error) {
 	ctx := context.Background()
 	rows, err := s.GetUsers(ctx)
 	if err != nil {
@@ -48,7 +48,7 @@ func (s *UserService) GetAllUsers() ([]model.User, error) {
 	return users, nil
 }
 
-func (s *UserService) RegisterUser(email string, username string, locations []string) error {
+func (s *Service) RegisterUser(email string, username string, locations []string) error {
 	ctx := context.Background()
 	user := db.CreateUserParams{
 		Email:              email,
