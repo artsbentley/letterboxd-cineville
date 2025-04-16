@@ -1,35 +1,20 @@
-package service
+package smtp
 
 import (
 	"fmt"
-	"letterboxd-cineville/internal/db"
-	"log/slog"
 	"os"
 
 	"github.com/go-gomail/gomail"
 )
 
-// TODO:
-// func sendConfirmationEmail(email, token string) error {
-// 	confirmationLink := fmt.Sprintf("https://yourdomain.com/confirm?token=%s", token)
-// 	message := fmt.Sprintf("Please confirm your email by clicking on the following link: %s", confirmationLink)
-// 	fmt.Println(message)
-//
-// 	// Set up your email settings and send the email
-// 	// (using gomail or another library)
-// 	return nil
-// }
+func NewClient() *gomail.Dialer {
+	smtpHost := "mail.smtp2go.com"
+	smtpPort := 2525
+	smtpUser := os.Getenv("SMTPUSER")
+	smtpPass := os.Getenv("SMTPPASS")
 
-type EmailService struct {
-	db.Querier
-	Logger *slog.Logger
-}
-
-func NewService(conn *db.Queries) *EmailService {
-	return &EmailService{
-		Querier: conn,
-		Logger:  slog.Default(),
-	}
+	dialer := gomail.NewDialer(smtpHost, smtpPort, smtpUser, smtpPass)
+	return dialer
 }
 
 func sendConfirmationEmail(email, token string) error {
@@ -45,10 +30,6 @@ func sendConfirmationEmail(email, token string) error {
         <p>%s</p>`, confirmationLink, confirmationLink)
 
 	// SMTP2GO settings
-	smtpHost := "mail.smtp2go.com"
-	smtpPort := 2525
-	smtpUser := os.Getenv("SMTPUSER")
-	smtpPass := os.Getenv("SMTPPASS")
 
 	// Create the email message
 	m := gomail.NewMessage()
@@ -61,7 +42,6 @@ func sendConfirmationEmail(email, token string) error {
 	m.AddAlternative("text/html", htmlBody) // HTML version with clickable link
 
 	// Set up the SMTP dialer
-	d := gomail.NewDialer(smtpHost, smtpPort, smtpUser, smtpPass)
 
 	// Send the email
 	if err := d.DialAndSend(m); err != nil {

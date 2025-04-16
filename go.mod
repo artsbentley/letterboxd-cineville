@@ -8,6 +8,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/a-h/templ v0.3.833
 	github.com/charmbracelet/log v0.4.1
+	github.com/go-gomail/gomail v0.0.0-20160411212932-81ebce5c23df
 	github.com/gocolly/colly v1.2.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.1
@@ -53,4 +54,6 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df // indirect
 )

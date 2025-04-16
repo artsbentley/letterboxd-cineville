@@ -3,9 +3,10 @@ package scraper
 import (
 	"encoding/json"
 	"fmt"
+	"letterboxd-cineville/internal/filmevent"
 	"letterboxd-cineville/internal/model"
-	"letterboxd-cineville/internal/service"
 	"letterboxd-cineville/internal/types"
+	"letterboxd-cineville/internal/user"
 	"log"
 	"log/slog"
 	"strings"
@@ -15,11 +16,11 @@ import (
 )
 
 type FilmEventScraper struct {
-	UserService      service.UserProvider
-	FilmEventService service.FilmEventProvider
+	UserService      user.Provider
+	FilmEventService filmevent.Provider
 }
 
-func NewFilmEventScraper(userService service.UserProvider, filmEventService service.FilmEventProvider) *FilmEventScraper {
+func NewFilmEventScraper(userService user.Provider, filmEventService filmevent.Provider) *FilmEventScraper {
 	return &FilmEventScraper{
 		UserService:      userService,
 		FilmEventService: filmEventService,

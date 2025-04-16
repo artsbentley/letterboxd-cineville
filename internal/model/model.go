@@ -27,3 +27,8 @@ type User struct {
 	Watchlist          []string   `json:"watchlist"`
 	Locations          []string   `json:"locations"`
 }
+
+type UserFilmMatch struct {
+	UserEmail   string
+	FilmMatches []FilmEvent
+}

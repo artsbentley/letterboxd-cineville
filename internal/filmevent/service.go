@@ -12,19 +12,15 @@ type Provider interface {
 	DeletePastFilmEvents() error
 }
 
-type Service struct {
-	db.Querier
-}
+type Service struct{}
 
-func NewService(conn *db.Queries) *Service {
-	return &Service{
-		Querier: conn,
-	}
+func NewService() *Service {
+	return &Service{}
 }
 
 // TODO: remember to implement this into main logic
 func (s *Service) DeletePastFilmEvents() error {
-	err := s.Querier.DeletePastFilmEvents(context.Background())
+	err := db.Store.DeletePastFilmEvents(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to delete film event rows that are in the past: ", err)
 	}
@@ -44,6 +40,6 @@ func (s *Service) InsertFilmEvent(event model.FilmEvent) error {
 		OrganizerUrl:    event.OrganizerURL,
 		PerformerName:   event.PerformerName,
 	}
-	_, err := s.Querier.CreateFilmEvent(context.Background(), arg)
+	_, err := db.Store.CreateFilmEvent(context.Background(), arg)
 	return err
 }

@@ -14,7 +14,7 @@ FROM users
 WHERE email = $1;
 
 -- name: GetUsers :many
-SELECT id, email, letterboxd_username, created_at, updated_at, watchlist
+SELECT *
 FROM users;
 
 -- name: UpdateUser :one

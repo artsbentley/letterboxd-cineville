@@ -21,7 +21,7 @@ type Querier interface {
 	DeleteUserWatchlist(ctx context.Context, email string) error
 	GetFilmEventByCity(ctx context.Context, lower string) ([]FilmEvent, error)
 	GetFilmEventByID(ctx context.Context, id uuid.UUID) (FilmEvent, error)
-	GetFilmEventsByUserEmail(ctx context.Context, email string) ([]FilmEvent, error)
+	GetFilmEventsByUserEmail(ctx context.Context, email string) ([]GetFilmEventsByUserEmailRow, error)
 	GetLocationByCity(ctx context.Context, city string) (uuid.UUID, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
@@ -29,6 +29,7 @@ type Querier interface {
 	GetUserWatchlist(ctx context.Context, email string) ([]string, error)
 	GetUsers(ctx context.Context) ([]User, error)
 	ListFilmEvents(ctx context.Context) ([]FilmEvent, error)
+	MatchFilmEventsWithUser(ctx context.Context, email string) ([]FilmEvent, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserWatchlist(ctx context.Context, arg UpdateUserWatchlistParams) error
 }

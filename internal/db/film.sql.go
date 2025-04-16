@@ -147,14 +147,77 @@ func (q *Queries) GetFilmEventByID(ctx context.Context, id uuid.UUID) (FilmEvent
 }
 
 const getFilmEventsByUserEmail = `-- name: GetFilmEventsByUserEmail :many
-SELECT fe.id, fe.name, fe.url, fe.start_date, fe.end_date, fe.location_name, fe.location_address, fe.city, fe.organizer_name, fe.organizer_url, fe.performer_name
+SELECT fe.id, name, url, start_date, end_date, location_name, location_address, city, organizer_name, organizer_url, performer_name, u.id, email, letterboxd_username, created_at, updated_at, watchlist
 FROM film_event fe
 JOIN users u ON fe.name = ANY(u.watchlist)
 WHERE u.email = $1
 `
 
-func (q *Queries) GetFilmEventsByUserEmail(ctx context.Context, email string) ([]FilmEvent, error) {
+type GetFilmEventsByUserEmailRow struct {
+	ID                 uuid.UUID  `json:"id"`
+	Name               string     `json:"name"`
+	Url                string     `json:"url"`
+	StartDate          time.Time  `json:"start_date"`
+	EndDate            time.Time  `json:"end_date"`
+	LocationName       string     `json:"location_name"`
+	LocationAddress    string     `json:"location_address"`
+	City               string     `json:"city"`
+	OrganizerName      string     `json:"organizer_name"`
+	OrganizerUrl       string     `json:"organizer_url"`
+	PerformerName      string     `json:"performer_name"`
+	ID_2               uuid.UUID  `json:"id_2"`
+	Email              string     `json:"email"`
+	LetterboxdUsername string     `json:"letterboxd_username"`
+	CreatedAt          *time.Time `json:"created_at"`
+	UpdatedAt          *time.Time `json:"updated_at"`
+	Watchlist          []string   `json:"watchlist"`
+}
+
+func (q *Queries) GetFilmEventsByUserEmail(ctx context.Context, email string) ([]GetFilmEventsByUserEmailRow, error) {
 	rows, err := q.db.Query(ctx, getFilmEventsByUserEmail, email)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetFilmEventsByUserEmailRow{}
+	for rows.Next() {
+		var i GetFilmEventsByUserEmailRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Url,
+			&i.StartDate,
+			&i.EndDate,
+			&i.LocationName,
+			&i.LocationAddress,
+			&i.City,
+			&i.OrganizerName,
+			&i.OrganizerUrl,
+			&i.PerformerName,
+			&i.ID_2,
+			&i.Email,
+			&i.LetterboxdUsername,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Watchlist,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listFilmEvents = `-- name: ListFilmEvents :many
+SELECT id, name, url, start_date, end_date, location_name, location_address, city, organizer_name, organizer_url, performer_name
+FROM film_event
+`
+
+func (q *Queries) ListFilmEvents(ctx context.Context) ([]FilmEvent, error) {
+	rows, err := q.db.Query(ctx, listFilmEvents)
 	if err != nil {
 		return nil, err
 	}
@@ -185,13 +248,22 @@ func (q *Queries) GetFilmEventsByUserEmail(ctx context.Context, email string) ([
 	return items, nil
 }
 
-const listFilmEvents = `-- name: ListFilmEvents :many
-SELECT id, name, url, start_date, end_date, location_name, location_address, city, organizer_name, organizer_url, performer_name
-FROM film_event
+const matchFilmEventsWithUser = `-- name: MatchFilmEventsWithUser :many
+select fe.id, fe.name, fe.url, fe.start_date, fe.end_date, fe.location_name, fe.location_address, fe.city, fe.organizer_name, fe.organizer_url, fe.performer_name
+from film_event fe
+join users u on u.email = $1::string
+join user_locations ul on u.id = ul.user_id
+join locations l on ul.location_id = l.id
+where exists (
+    select 1
+    from unnest(u.watchlist) as w
+    where lower(w) = lower(fe.name)
+)
+and lower(fe.city) = lower(l.city)
 `
 
-func (q *Queries) ListFilmEvents(ctx context.Context) ([]FilmEvent, error) {
-	rows, err := q.db.Query(ctx, listFilmEvents)
+func (q *Queries) MatchFilmEventsWithUser(ctx context.Context, email string) ([]FilmEvent, error) {
+	rows, err := q.db.Query(ctx, matchFilmEventsWithUser, email)
 	if err != nil {
 		return nil, err
 	}

@@ -2,7 +2,8 @@ package scraper
 
 import (
 	"fmt"
-	"letterboxd-cineville/internal/service"
+	"letterboxd-cineville/internal/user"
+	"letterboxd-cineville/internal/watchlist"
 	"log/slog"
 	"strings"
 
@@ -11,11 +12,11 @@ import (
 )
 
 type WatchlistScraper struct {
-	UserService      service.UserProvider
-	WatchlistService service.WatchlistProvider
+	UserService      user.Provider
+	WatchlistService watchlist.Provider
 }
 
-func NewWatchlistScraper(userService service.UserProvider, watchlistService service.WatchlistProvider) *WatchlistScraper {
+func NewWatchlistScraper(userService user.Provider, watchlistService watchlist.Provider) *WatchlistScraper {
 	return &WatchlistScraper{
 		UserService:      userService,
 		WatchlistService: watchlistService,
